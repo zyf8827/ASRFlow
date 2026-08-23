@@ -1,0 +1,102 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Environments
+.env
+.venv
+
+# 由 deployment/init-compose.sh 生成, 不入库
+deployment/.env
+deployment/docker-compose.yaml
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE & Tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+.v2c/
+.video_agent/
+
+# Project runtime logs & caches
+logs/
+*.log
+.cache/
+outputs/
+models/
+*.pt
+*.bin
+*.safetensors
+*.onnx
+
+# Benchmark 数据与报告产物 (压测原始数据/报告/图表均由脚本从 results/ 再生, 不入库)
+benchmark/results/
+docs/benchmark_charts/
+docs/*.pdf
+benchmark_report*.json
+benchmark_report*.csv
+
+# 二遍 context A/B 测试缓存 (scripts/ab_test_final_context.py 产物)
+.asr_ab_cache/
+
+# 外部项目资料/数据集暂存目录 (非本仓库源码, 勿打包分发)
+dl-retrieve-model/
+
+# 打包构建产物 (scripts/pack.sh 全量源码包 / scripts/build_upgrade.sh 升级包)
+dist/
+asrflow-src-*.tar.gz
+asrflow_update_*.tar.gz
