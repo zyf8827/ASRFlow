@@ -1,0 +1,126 @@
+# ASRFlow 默认配置 —— 完整副本, 包含全部有效配置项 (与 config/settings.py 一一对应)
+#
+# 加载优先级: 本文件 < 环境变量 (ASR_DEVICE / VLLM_URL / FINAL_ASR_BACKEND 等) < main.py CLI 参数
+
+server:
+  host: "0.0.0.0"                # 监听地址 (env ASR_SERVER_HOST / CLI --host)
+  port: 10095                    # WebSocket 网关端口 (env ASR_SERVER_PORT / CLI --port)
+  http_port: 10096               # HTTP healthz/metrics/dashboard 端口 (env ASR_HTTP_PORT / CLI --http_port)
+  max_connections: 100           # 并发会话硬上限(资源闸: 环形缓冲~1MB/会话); 过载拒绝由 admission 负责 (env MAX_CONNECTIONS)
+  ping_interval: 20.0            # WS 心跳 ping 间隔(s)
+  ping_timeout: 20.0             # WS 心跳 pong 超时(s), 超时断开
+  max_message_size: 10485760     # 单帧消息上限(字节)
+  resume_ttl_sec: 30.0           # 掉线后会话保留宽限期(s), 期内可 resume 续接; 0 关闭 (env RESUME_TTL_SEC / CLI --resume_ttl_sec)
+  idle_timeout_sec: 300.0        # 无 WS 活动会话的空闲驱逐阈值(s) (env IDLE_TIMEOUT_SEC)
+  max_audio_frame_ms: 2000       # 单个二进制音频帧的最大时长(ms), 超长截断处理, 防单帧占住会话处理 (env ASR_MAX_FRAME_MS)
+
+admission:
+  enable: true                    # 负载准入: 探针持续超限时拒绝新建会话(error 4290 + close 1013), 存量会话不受影响; false 关闭 (env ADMISSION_ENABLE)
+  streaming_wait_ms_limit: 200.0  # 首遍合批排队 EWMA 阈值(ms), 持续超限计入饱和 (env ADMISSION_STREAMING_WAIT_MS)
+  vad_wait_ms_limit: 150.0        # VAD 推理锁排队 EWMA 阈值(ms) (env ADMISSION_VAD_WAIT_MS)
+  final_fallback_rate_limit: 0.5  # 二遍回退率 EWMA 阈值(0~1) (env ADMISSION_FINAL_FALLBACK_RATE)
+  saturate_sec: 5.0               # 探针持续超限多久进入饱和(开始拒新会话)
+  recover_sec: 10.0               # 全部探针持续低于半阈值多久解除饱和
+
+audio:
+  sample_rate: 16000             # 采样率(Hz), 协议固定 PCM16
+  channels: 1                    # 声道数
+  bytes_per_sample: 2            # 位深(字节), PCM16 = 2
+  ring_buffer_duration_sec: 32.0 # 环形缓冲保留时长(s); 须 >= max_speech + pre_roll (30s+0.8s)
+  pre_roll_ms: 800               # VAD speech_start 前回补音频(ms)
+
+# 流式幻觉/退化行分层防御 (L0 近零静音特判 / L1 门控 / L2 看门狗).
+# 详见 docs/design_degenerate_rows_guard_2026-09-18.md; 各层独立开关, 可单独回滚.
+voice:
+  suppress_prestart_partials: true   # L1: VAD 未起段不发 partial (累积仍进行); 默认开, 一键回滚 (env VOICE_SUPPRESS_PRESTART_PARTIALS)
+  silence_floor_dbfs: -80.0          # L0: 非语音且 chunk RMS 低于此值(dBFS)时丢弃流式 token; -80 只抓数字静音 (env VOICE_SILENCE_FLOOR_DBFS)
+  skip_inference_on_silence: false   # L0 可选: 近零静音时跳过流式推理 (默认仍推理以保持引擎时间线) (env VOICE_SKIP_INFERENCE_ON_SILENCE)
+  watchdog_enable: true              # L2 看门狗: 非语音态攒满 min_chars 后强切一段进 Qwen+Guard 裁决; 病理会话(约2.4%)的内存封顶层; 回滚 VOICE_WATCHDOG_ENABLE=false
+  watchdog_min_chars: 8              # L2 触发字数; 漏检语音 3~5字/s 约2s攒满, 噪声幻觉 0.3字/s 约25s攒满 (env VOICE_WATCHDOG_MIN_CHARS)
+  watchdog_max_segment_ms: 30000     # L2 单次强切最大音频跨度; 须满足 max_segment+pre_roll <= ring_buffer
+  watchdog_rate_limit_per_hour: 20   # L2 每会话每小时强切上限(即 Qwen 调用硬上界), 超限静默丢弃
+
+pool:
+  worker_threads: 0              # CPU 推理线程池(VAD/流式ASR/说话人共用); 0=自动: min(16, CPU 逻辑核数), 多实例绑核部署下每实例不宜固定 16 (env ASR_WORKER_THREADS)
+
+streaming_asr:
+  backend: "auto"                # auto | onnx | mock; ONNX 合批引擎是唯一真实引擎, auto 缺依赖/模型时静默回退 Mock, 显式 onnx 则报错
+  device: "auto"                 # auto | cuda:0 | cpu; 作用于首遍 ONNX Execution Provider (CPU / CUDA:N), auto 自动探测 (env ASR_DEVICE / CLI --device)
+  chunk_size: [5, 10, 5]         # 流式重叠窗 [左, 当前, 右] (LFR chunk 数), 须与导出 ONNX 图的模型一致;
+                                 # 小参数 Paraformer 导出物必须带左上下文 [5,10,5] (env STREAMING_CHUNK_SIZE, 如 "5,10,5")
+  batch_size: 8                  # 单次合批的最大流数 (env STREAMING_BATCH_SIZE / CLI --streaming_batch_size)
+  batch_window_ms: 15            # 攒批等待窗口(ms), 0=到达即执行 (env STREAMING_BATCH_WINDOW_MS / CLI --streaming_batch_window_ms)
+  onnx_model_dir: "models/onnx"  # funasr 导出物目录 (model/decoder[_quant].onnx + config.yaml + am.mvn + tokens.json,
+                                 # 由 scripts/export_onnx.py 产出) (env STREAMING_ONNX_DIR / CLI --streaming_onnx_dir)
+  onnx_quantize: true            # 使用 int8 量化图 (更快更省内存, 与 fp32 有轻微字错率差异) (env STREAMING_ONNX_QUANT)
+  onnx_intra_op_threads: 0       # ORT 每会话 intra-op 线程数, 0=默认全部核 (env STREAMING_ONNX_THREADS)
+
+vad:
+  backend: "auto"                # auto | funasr | mock
+  model_name_or_path: "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch" # (env VAD_MODEL / CLI --vad_model)
+  model_revision: "v2.0.4"
+  device: "cpu"                  # FSMN-VAD 在 CPU 上足够轻量
+  max_end_silence_time: 800      # 句尾静音判定阈值(ms)
+  max_speech_duration_ms: 30000  # 连续无停顿语音的最长单句时长, 超过强制切分 (<=0 禁用); 必须满足 max_speech+pre_roll <= ring_buffer (env VAD_MAX_SPEECH_MS / CLI --max_speech_duration_ms)
+  speech_noise_thresh: 0.6       # 语音/噪声判决阈值
+
+final_asr:
+  engine_type: "vllm_http"       # vllm_http | openai_api | mock (env FINAL_ASR_BACKEND / CLI --final_backend)
+  vllm_url: "http://127.0.0.1:8000/v1/chat/completions" # 二遍 vLLM 地址, 兼容 /v1/audio/transcriptions 端点 (env VLLM_URL / CLI --vllm_url)
+  model_name: "qwen3-asr"        # 须与 vLLM 侧 --served-model-name 一致 (env FINAL_ASR_MODEL / CLI --final_model)
+  api_key: "EMPTY"               # Bearer 鉴权头, vLLM 一般填 EMPTY
+  hard_timeout_sec: 8.0          # 二遍单句硬超时(s), 超时/失败回退首遍结果; 压测全表最大延迟 442ms(32并发/10s段), 8s≈18x余量, 2.5s 会让 30s force-cut 长句系统性回退 (env FINAL_TIMEOUT_SEC)
+  max_batch_size: 8              # 微批最大句数
+  batch_window_ms: 20            # 微批聚合窗口(ms)
+  max_concurrency: 32            # 二遍推理并发上限, 按句计(同时在途的请求数); 压测最高档 32 并发 p99<450ms 且未见饱和 (env FINAL_MAX_CONCURRENCY)
+  max_queue_size: 64             # 二遍待处理作业队列上限, 溢出即拒绝并回退首遍结果
+  temperature: 0.0
+  max_tokens: 512                # 单句生成 token 上限(截断上限非固定开销); 快语速 30s 句可达 ~360 字, 256 会截断 (env FINAL_MAX_TOKENS)
+  prompt_prefix: "语音转写："     # 二遍指令前缀, 会自动拼接热词/上下文
+  context_history_chars: 200     # 二遍 prompt 历史上下文尾部字数 (S3: 已 finalize 的二遍结果, 不传本句首遍); 0=不传 context (env FINAL_CONTEXT_HISTORY_CHARS)
+
+speaker:
+  backend: "auto"                # auto | funasr | mock; 会话级开关由 start 信令 enable_spk 控制
+  model_name_or_path: "iic/speech_campplus_sv_zh-cn_16k-common" # (env SPEAKER_MODEL / CLI --speaker_model)
+  model_revision: "master"
+  device: "auto"                 # auto | cuda:0 | cpu (env ASR_DEVICE / CLI --device)
+  similarity_threshold: 0.65     # 说话人聚类归属相似度阈值
+  max_speakers: 10               # 聚类说话人数量上限
+
+punc:
+  enable_realtime: false         # 实时标点(首遍部分结果加标点); 关闭时不加载模型
+  backend: "auto"                # auto | funasr | mock
+  model_name_or_path: "iic/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727" # (env PUNC_MODEL / CLI --punc_model)
+  model_revision: "v2.0.4"
+  device: "cpu"
+
+guard:
+  enable: true                   # 一致性护栏总开关; 异常仅标记 needs_review 保留二遍结果(首遍质量更差), 回退仅限二遍超时/失败
+  max_edit_distance_ratio: 0.60  # 二遍相对首遍编辑距离比上限, 超过标记 needs_review
+  max_chars_per_second: 12.0     # 字/秒合理上限, 超过判为可疑
+  min_speech_duration_ms: 300    # 短音频长文本检测的时长下限(ms)
+  repetition_ngram: 4            # 重复检测 ngram 长度
+  repetition_max_count: 3        # 同一 ngram 最大允许重复次数
+
+itn:
+  enable: true                   # 确定性中文 ITN(数字/日期/金额/百分比)
+
+observability:
+  log_level: "INFO"              # DEBUG | INFO | WARNING | ERROR (env LOG_LEVEL / CLI --log_level)
+  log_dir: "logs"                # 日志目录, 相对路径基于项目根目录; null 关闭文件日志 (env LOG_DIR / CLI --log_dir)
+  log_file: null                 # 日志文件完整路径, 设置后优先于 log_dir (env LOG_FILE / CLI --log_file)
+  log_rotation: "00:00"          # 轮转策略: "00:00"=每日零点 | "1 day"=每24h | "100 MB"=按大小; null 不轮转 (env LOG_ROTATION)
+  log_retention: "30 days"       # 轮转文件保留时长, 如 "30 days" / "7 days"; null 永久保留 (env LOG_RETENTION)
+  transcript_dir: null           # 会话结束/移除时按 session_id 落盘转写 JSON 的目录; null 关闭 (CLI --transcript_dir)
+
+registry:
+  enable: false                  # 开启后服务就绪时向 Nacos 注册临时实例(心跳保活) (env NACOS_ENABLE / CLI --nacos_enable)
+  server_endpoint: "127.0.0.1:8848" # Nacos 服务端地址 host:port (env NACOS_SERVER_ENDPOINT / CLI --nacos_endpoint)
+  service_name: "asrflow"           # 注册的服务名 (env NACOS_SERVICE_NAME / CLI --nacos_service_name)
+  service_host: "127.0.0.1"         # 注册到 Nacos 的服务地址, 不能是 0.0.0.0, 多网卡/容器需显式指定 (env NACOS_SERVICE_HOST / CLI --nacos_service_host)
+  namespace: "public"               # (env NACOS_NAMESPACE / CLI --nacos_namespace)
+  group_name: "DEFAULT_GROUP"       # (env NACOS_GROUP_NAME / CLI --nacos_group_name)
+  username: ""                      # Nacos 鉴权用户名, 留空则不登录 (env NACOS_USERNAME / CLI --nacos_username)
+  password: ""                      # (env NACOS_PASSWORD / CLI --nacos_password)
+  heartbeat_sec: 5.0                # 心跳间隔(秒), 临时实例保活 (env NACOS_HEARTBEAT_SEC / CLI --nacos_heartbeat_sec)
+  cluster_name: "DEFAULT"
