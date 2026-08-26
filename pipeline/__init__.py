@@ -1,1 +1,1 @@
-"""ASRFlow package."""
+"""ASRFlow session pipeline."""
