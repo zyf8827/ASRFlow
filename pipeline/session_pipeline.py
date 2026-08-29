@@ -754,4 +754,4 @@ class SessionPipeline:
             f"[{self.session.session_id}] Session finished with {len(self.session.sentences)} sentences."
         )
 
-# NOTE: partial/provisional emission wired; refine VAD commit edges later
+# NOTE: timestamps stabilized with mock streaming; VAD edge cases still open

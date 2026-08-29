@@ -71,5 +71,3 @@ class MockStreamingASREngine(BaseStreamingASREngine):
         self, cache: Dict[str, Any], hotwords: Optional[List[str]] = None
     ) -> str:
         return self.process_chunk(b"", cache=cache, is_final=True, hotwords=hotwords)
-
-# FIXME: mock timestamps drift under bursty audio; stabilize in follow-up
