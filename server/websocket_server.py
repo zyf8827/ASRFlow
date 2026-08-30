@@ -415,5 +415,3 @@ class WebSocketGateway:
             await self._server.wait_closed()
             self._is_running = False
             logger.info("[WebSocketGateway] Server stopped.")
-
-# DRAFT: temporary handler notes — tidy after protocol freeze
