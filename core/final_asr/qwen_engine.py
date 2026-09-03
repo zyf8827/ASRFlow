@@ -230,5 +230,3 @@ class Qwen3ASREngine(BaseFinalASREngine):
     async def close(self):
         if self._session and not self._session.closed:
             await self._session.close()
-
-# TODO: fully decouple pass-2 over HTTP to standalone vLLM
