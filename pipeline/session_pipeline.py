@@ -753,5 +753,3 @@ class SessionPipeline:
         logger.info(
             f"[{self.session.session_id}] Session finished with {len(self.session.sentences)} sentences."
         )
-
-# NOTE: timestamps stabilized with mock streaming; VAD edge cases still open
