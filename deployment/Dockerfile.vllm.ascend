@@ -1,0 +1,29 @@
+# ==============================================================================
+# Qwen3-ASR 二遍 vLLM 镜像 —— 华为昇腾 (Ascend) 专用
+# (与 NVIDIA 版 Dockerfile.vllm 分开维护: 基础镜像的包管理环境差异大, 见 RUN 注释;
+#  构建/编排统一走 build-vllm.sh ascend / docker-compose.qwen3-asr.ascend.example.yaml)
+#
+# 在 vllm-ascend 基础镜像之上补装 vllm[audio]==0.23.0 (与镜像内置 vllm 同版本):
+# 基础镜像只带纯文本 vLLM, 缺音频依赖 (soundfile/av 等), Qwen3-ASR 在线推理必需;
+# 已满足的依赖 pip 默认跳过, 不会动内置 vllm/torch。pip 源默认阿里云 (见 RUN 注释)。
+#
+# 构建 (context 用 deployment/ 目录即可, 不要用仓库根拖入 models/):
+#   docker build -f deployment/Dockerfile.vllm.ascend deployment \
+#       -t vllm-qwen3-asr:v0.23.0-ascend
+# 或统一走: bash deployment/build-vllm.sh ascend        (910B)
+#           bash deployment/build-vllm.sh ascend-310p   (310P: BASE_IMAGE 换 :v0.23.0-310p,
+#                                                        产出 vllm-qwen3-asr:0.23.0-310p)
+# 910B 与 310P 基础镜像同仓库、包管理环境一致, 共用本文件, 由脚本传 BASE_IMAGE 区分
+# ==============================================================================
+
+ARG BASE_IMAGE=quay.io/ascend/vllm-ascend:v0.23.0
+FROM ${BASE_IMAGE}
+
+ARG VLLM_VERSION=0.23.0
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+# 镜像 (aarch64, py3.12, 自带 pip 26) 依赖完整, 只补装 [audio] 缺的音频包;
+# 已满足的依赖 pip 默认跳过, 不会替换内置 vllm/torch。
+# 源默认阿里云: 清华源在昇腾机实测拿不到 numpy 等候选 (No matching distribution),
+# 阿里云/官方源正常; 换源用 --build-arg PIP_INDEX_URL=... 或 PIP_INDEX_URL 环境变量
+RUN python3 -m pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" "vllm[audio]==${VLLM_VERSION}"

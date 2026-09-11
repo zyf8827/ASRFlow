@@ -1,0 +1,27 @@
+# ==============================================================================
+# Qwen3-ASR 二遍 vLLM 镜像 (与 asrflow 网关镜像相互独立)
+#
+# 在官方 vLLM 基础镜像之上重装 vllm[audio]==<同版本>: 基础镜像只带纯文本 vLLM,
+# 缺音频依赖 (soundfile/librosa 等), Qwen3-ASR 在线推理必需; 版本与基础镜像
+# 内置 vllm 一致, uv 只补装缺失依赖不会降级/替换内核。pip 走阿里云源。
+#
+# NVIDIA GPU 专用 (昇腾基础镜像的包管理环境差异大, 单独走 Dockerfile.vllm.ascend):
+#   基础镜像: vllm/vllm-openai:v0.28.0 -> vllm[audio]==0.28.0
+#
+# 构建 (context 用 deployment/ 目录即可, 不要用仓库根拖入 models/):
+#   docker build -f deployment/Dockerfile.vllm deployment -t vllm-qwen3-asr:v0.28.0
+# 或统一走: bash deployment/build-vllm.sh gpu
+#
+# 运行参考: deployment/docker-compose.qwen3-asr.gpu.example.yaml (NVIDIA)
+#           deployment/docker-compose.qwen3-asr.ascend.example.yaml (昇腾)
+# ==============================================================================
+
+ARG BASE_IMAGE=vllm/vllm-openai:v0.28.0
+FROM ${BASE_IMAGE}
+
+ARG VLLM_VERSION=0.28.0
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
+# 官方 vLLM 镜像自带 uv (其 Dockerfile 即用它装包); 缺失时兜底补装, 不依赖外网脚本
+RUN command -v uv >/dev/null 2>&1 || python3 -m pip install --no-cache-dir uv; \
+    uv pip install --system --index-url "${PIP_INDEX_URL}" "vllm[audio]==${VLLM_VERSION}"

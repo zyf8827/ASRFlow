@@ -1,0 +1,78 @@
+# ==============================================================================
+# Qwen3-ASR 二遍 vLLM 独立编排参考 —— 华为昇腾 910B 版
+# (NVIDIA GPU 部署用 docker-compose.qwen3-asr.gpu.example.yaml, 二选一)
+#
+# 本文件可直接改后使用 (也可复制为 docker-compose.qwen3-asr.yaml 再改):
+#   cd deployment && docker compose -f docker-compose.qwen3-asr.ascend.example.yaml up -d
+#
+# 镜像构建 (vllm-ascend 基础镜像 + vllm[audio] 音频依赖, 见 Dockerfile.vllm.ascend):
+#   bash deployment/build-vllm.sh ascend     # quay.io/ascend/vllm-ascend:v0.23.0 -> vllm-qwen3-asr:v0.23.0-ascend
+# (也可直接由本文件的 build 段在 up 时自动构建, 二选一)
+#
+# 与 asrflow 网关对接 (deployment/.env 或 init-compose.sh 交互项):
+#   VLLM_URL=http://<宿主IP>:8899/v1/audio/transcriptions   # 端口须与本文件 ports 一致
+#   FINAL_ASR_MODEL=qwen3-asr-1.7b                      # 须与下方 --served-model-name 一致
+#
+# 模型不在线下载: 直接挂载宿主模型目录 (默认 /opt/models/qwen3-asr 或 Qwen3-ASR-1.7B 权重目录,
+# HuggingFace/ModelScope 仓库原样布局: config.json、*.safetensors、tokenizer 等)
+# 到容器 /models/qwen3-asr (只读), --model 指向该容器内路径。
+# ==============================================================================
+name: vllm-qwen-asr
+
+services:
+  qwen3-asr-1.7b:
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm.ascend
+      args:
+        BASE_IMAGE: quay.io/ascend/vllm-ascend:v0.23.0
+        VLLM_VERSION: "0.23.0"   # 与基础镜像内置 vllm 同版本, 只补音频依赖
+    image: vllm-qwen3-asr:v0.23.0-ascend
+    container_name: vllm-qwen3-asr-1.7b
+
+    environment:
+      TZ: "Asia/Shanghai"   # 容器时区: 东八区, 日志时间戳与宿主一致
+      # vLLM 默认单个音频文件最大 25MB。
+      # 如果后续需要直接上传较长录音，可按需调大：
+      VLLM_MAX_AUDIO_CLIP_FILESIZE_MB: "25"
+
+    ports:
+      - "8899:8899"
+
+    volumes:
+      # 宿主模型目录 -> 容器 (只读); --model 指向容器内路径, 全程不访问公网
+      - ${QWEN3_ASR_MODEL_DIR:-/opt/models/qwen3-asr}:/models/qwen3-asr:ro
+      # 昇腾宿主驱动 (只读挂载):
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      - /usr/local/dcmi:/usr/local/dcmi:ro
+      - /usr/local/bin/npu-smi:/usr/local/bin/npu-smi:ro
+
+    devices:
+      - /dev/davinci0                # 使用的 NPU 卡; 多卡把 davinci 编号依次列出
+      - /dev/davinci_manager         # 并把 --tensor-parallel-size 改成卡数
+      - /dev/devmm_svm               # 共享内存设备 (固定)
+      - /dev/hisi_hdc                # HDC 通道 (固定)
+
+    ipc: host
+
+    command: >
+      --model /models/qwen3-asr
+      --host 0.0.0.0
+      --port 8899
+      --tensor-parallel-size 1
+      --dtype bfloat16
+      --max-model-len 20000
+      --gpu-memory-utilization 0.7
+      --max-num-seqs 32
+      --served-model-name qwen3-asr qwen3-asr-1.7b
+      --limit-mm-per-prompt '{"audio":1}'
+
+    restart: unless-stopped
+
+    # 容器 stdout/stderr (json-file) 轮转: 不配置时 docker 默认不封顶。
+    # json-file 只能按大小轮转 (无按天模式): 默认 100m×15, 常规流量下保留 ≥15 天
+    logging:
+      driver: json-file
+      options:
+        max-size: "${DOCKER_LOG_MAX_SIZE:-100m}"
+        max-file: "${DOCKER_LOG_MAX_FILE:-15}"

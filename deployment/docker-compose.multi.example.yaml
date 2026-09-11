@@ -1,0 +1,142 @@
+# ASRFlow 多实例编排模板 (example)
+# 不要直接 compose up 本文件. 先运行:
+#   bash deployment/init-compose.sh
+# 按本机核数生成 deployment/docker-compose.yaml (含 cpuset / ONNX_THREADS) 后再:
+#   cd deployment && docker compose up -d
+#
+# 首遍是 ONNX 合批: 单实例靠 intra-op 用多核, 但小图吃不满整机; 剩余核用
+# 多个绑核进程吃掉。每实例独占一组 CPU, 并把 ORT/OMP 线程数钉成该组核数,
+# 避免默认 STREAMING_ONNX_THREADS=0 (全核) 导致多实例互抢。
+#
+# 绑核: 服务级 cpuset 对应 `docker run --cpuset-cpus`, 可写核序号:
+#   "0-3"           连续 4 核
+#   "0,2,4,6"       指定偶数核 (避开超线程兄弟核)
+#   "0-3,8-11"      两段拼接
+#
+# 本模板默认 4 实例 x 4 核. 实例数/核划分由 init-compose.sh 按 nproc 生成.
+#
+# 说明:
+#   - host 网络: 各实例占不同宿主端口 (WS 10095/10105/10115/10125, HTTP=WS+1),
+#     以宿主 IP 注册 Nacos; 客户端发现后直连。同一会话始终连同一实例
+#     (resume / 热词在进程内存)。
+#   - 不要用 deploy.resources.limits.cpus 替代 cpuset: 那是配额, 不钉核序号,
+#     且 `docker compose up` (非 Swarm) 常常不生效。
+#   - 镜像内: FunASR VAD/说话人 + 首遍 ONNX; 二遍走 VLLM_URL。
+#   - 镜像: asrflow:<版本> (amd64/arm64 各一份 Dockerfile, 下方 build 段默认指
+#     amd64 版; init-compose.sh 在 arm64 宿主上会把生成文件的 build 段改指
+#     Dockerfile.arm64).
+#   - 日志: ${ASRFLOW_LOG_BASE:-/var/log/asrflow}/instance-N (每实例一目录, 互不冲突);
+#     热替换挂载见 docker-compose.single.example.yaml。
+
+x-asrflow-common: &asrflow-base
+  build:
+    context: ..
+    dockerfile: deployment/Dockerfile
+  image: asrflow:${ASRFLOW_VERSION:-1.0.0}
+  restart: always
+  network_mode: host
+  mem_limit: ${ASRFLOW_MEM_LIMIT:-2g}
+  # 容器 stdout/stderr (json-file) 轮转: 不配置时 docker 默认不封顶, 会打爆宿主磁盘。
+  # json-file 只能按大小轮转 (无按天模式): 默认 100m×15, 常规流量下保留 ≥15 天;
+  # 需要按天保留的完整日志看应用文件日志 (LOG_ROTATION/LOG_RETENTION, 默认 30 天)
+  logging:
+    driver: json-file
+    options:
+      max-size: "${DOCKER_LOG_MAX_SIZE:-100m}"
+      max-file: "${DOCKER_LOG_MAX_FILE:-15}"
+  environment: &asrflow-env
+    TZ: Asia/Shanghai                        # 容器时区: 东八区, 日志时间戳与宿主一致
+    ASR_SERVER_HOST: 0.0.0.0
+    ASR_DEVICE: ${ASR_DEVICE:-cpu}
+    RESUME_TTL_SEC: ${RESUME_TTL_SEC:-30}
+    IDLE_TIMEOUT_SEC: ${IDLE_TIMEOUT_SEC:-300}
+    ASR_CONFIG_PATH: ${ASR_CONFIG_PATH:-}
+    STREAMING_ASR_BACKEND: ${STREAMING_ASR_BACKEND:-onnx}
+    VAD_BACKEND: ${VAD_BACKEND:-funasr}
+    SPEAKER_BACKEND: ${SPEAKER_BACKEND:-funasr}
+    FINAL_ASR_BACKEND: ${FINAL_ASR_BACKEND:-vllm_http}
+    VAD_MODEL: ${VAD_MODEL:-}
+    SPEAKER_MODEL: ${SPEAKER_MODEL:-}
+    PUNC_MODEL: ${PUNC_MODEL:-}
+    VAD_MAX_SPEECH_MS: ${VAD_MAX_SPEECH_MS:-30000}
+    STREAMING_BATCH_SIZE: ${STREAMING_BATCH_SIZE:-8}
+    STREAMING_BATCH_WINDOW_MS: ${STREAMING_BATCH_WINDOW_MS:-15}
+    STREAMING_ONNX_DIR: ${STREAMING_ONNX_DIR:-}
+    STREAMING_ONNX_QUANT: ${STREAMING_ONNX_QUANT:-}
+    # 必须等于该实例 cpuset 核数; 留空/0 = ORT 按可见 CPU 全开, 多实例会互抢
+    STREAMING_ONNX_THREADS: ${STREAMING_ONNX_THREADS:-4}
+    OMP_NUM_THREADS: ${OMP_NUM_THREADS:-4}
+    MKL_NUM_THREADS: ${MKL_NUM_THREADS:-4}
+    VLLM_URL: ${VLLM_URL:-http://127.0.0.1:8899/v1/audio/transcriptions}
+    FINAL_ASR_MODEL: ${FINAL_ASR_MODEL:-qwen3-asr}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    LOG_DIR: ${LOG_DIR:-logs}
+    LOG_FILE: ${LOG_FILE:-}
+    LOG_ROTATION: ${LOG_ROTATION:-00:00}
+    LOG_RETENTION: ${LOG_RETENTION:-30 days}
+    NACOS_ENABLE: "true"
+    NACOS_SERVER_ENDPOINT: ${NACOS_SERVER_ENDPOINT:-127.0.0.1:8848}
+    NACOS_SERVICE_NAME: ${NACOS_SERVICE_NAME:-asrflow}
+    NACOS_SERVICE_HOST: ${NACOS_SERVICE_HOST:-127.0.0.1}
+    NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+    NACOS_GROUP_NAME: ${NACOS_GROUP_NAME:-DEFAULT_GROUP}
+    NACOS_USERNAME: ${NACOS_USERNAME:-nacos}
+    NACOS_PASSWORD: ${NACOS_PASSWORD:-CHANGE_ME}
+    NACOS_HEARTBEAT_SEC: ${NACOS_HEARTBEAT_SEC:-5}
+
+services:
+  asrflow-1:
+    <<: *asrflow-base
+    container_name: asrflow-1
+    cpuset: ${ASRFLOW_1_CPUSET:-0-3}
+    environment:
+      <<: *asrflow-env
+      ASR_SERVER_PORT: 10095
+      ASR_HTTP_PORT: 10096
+      STREAMING_ONNX_THREADS: ${ASRFLOW_1_ONNX_THREADS:-4}
+      OMP_NUM_THREADS: ${ASRFLOW_1_ONNX_THREADS:-4}
+      MKL_NUM_THREADS: ${ASRFLOW_1_ONNX_THREADS:-4}
+    volumes:
+      - ${ASRFLOW_LOG_BASE:-/var/log/asrflow}/instance-1:/app/logs
+
+  asrflow-2:
+    <<: *asrflow-base
+    container_name: asrflow-2
+    cpuset: ${ASRFLOW_2_CPUSET:-4-7}
+    environment:
+      <<: *asrflow-env
+      ASR_SERVER_PORT: 10105
+      ASR_HTTP_PORT: 10106
+      STREAMING_ONNX_THREADS: ${ASRFLOW_2_ONNX_THREADS:-4}
+      OMP_NUM_THREADS: ${ASRFLOW_2_ONNX_THREADS:-4}
+      MKL_NUM_THREADS: ${ASRFLOW_2_ONNX_THREADS:-4}
+    volumes:
+      - ${ASRFLOW_LOG_BASE:-/var/log/asrflow}/instance-2:/app/logs
+
+  asrflow-3:
+    <<: *asrflow-base
+    container_name: asrflow-3
+    cpuset: ${ASRFLOW_3_CPUSET:-8-11}
+    environment:
+      <<: *asrflow-env
+      ASR_SERVER_PORT: 10115
+      ASR_HTTP_PORT: 10116
+      STREAMING_ONNX_THREADS: ${ASRFLOW_3_ONNX_THREADS:-4}
+      OMP_NUM_THREADS: ${ASRFLOW_3_ONNX_THREADS:-4}
+      MKL_NUM_THREADS: ${ASRFLOW_3_ONNX_THREADS:-4}
+    volumes:
+      - ${ASRFLOW_LOG_BASE:-/var/log/asrflow}/instance-3:/app/logs
+
+  asrflow-4:
+    <<: *asrflow-base
+    container_name: asrflow-4
+    cpuset: ${ASRFLOW_4_CPUSET:-12-15}
+    environment:
+      <<: *asrflow-env
+      ASR_SERVER_PORT: 10125
+      ASR_HTTP_PORT: 10126
+      STREAMING_ONNX_THREADS: ${ASRFLOW_4_ONNX_THREADS:-4}
+      OMP_NUM_THREADS: ${ASRFLOW_4_ONNX_THREADS:-4}
+      MKL_NUM_THREADS: ${ASRFLOW_4_ONNX_THREADS:-4}
+    volumes:
+      - ${ASRFLOW_LOG_BASE:-/var/log/asrflow}/instance-4:/app/logs
