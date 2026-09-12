@@ -1,0 +1,29 @@
+# ==============================================================================
+# ASRFlow Service - Production Dependencies
+# ==============================================================================
+
+# Core Async Server & Web Gateway
+websockets>=12.0
+aiohttp>=3.9.0
+loguru>=0.7.2
+pyyaml>=6.0.1
+
+# Scientific Computing & Clustering
+numpy>=1.24.0
+scipy>=1.11.0  # optional: only used for demo WAV resampling
+scikit-learn>=1.3.0  # optional: only used for speaker re-clustering; falls back to greedy if missing
+# regex, pydantic, requests are not required by core service (removed for minimal env)
+
+# Deep Learning & FunASR Model Execution (Required for real models)
+torch>=2.1.0
+torchaudio>=2.1.0
+funasr>=1.1.0
+modelscope>=1.14.0
+
+# ONNX Runtime 多路合批流式引擎 (streaming_asr.backend="onnx") 可选依赖
+# 模型导出: scripts/export_onnx.py (产物含 model/decoder[_quant].onnx + 配套)
+# CPU 用 onnxruntime；GPU 需改装 onnxruntime-gpu（二者互斥，不要同时安装）
+onnxruntime>=1.17
+funasr-onnx>=0.4
+onnx>=1.15          # 仅导出时需要
+onnxscript          # torch>=2.6 导出路径需要

@@ -733,5 +733,3 @@ class OnnxBatchedStreamingEngine(SelfHealingMixin, BaseStreamingASREngine):
     def close(self):
         if getattr(self, "_batcher", None) is not None:
             self._batcher.stop()
-
-# TODO: select CPU/CUDA ExecutionProvider based on runtime device
