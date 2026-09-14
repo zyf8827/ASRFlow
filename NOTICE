@@ -1,0 +1,48 @@
+ASRFlow
+Copyright 2026 ASRFlow Authors and Contributors
+
+This product includes software developed by the ASRFlow project
+(https://github.com/asrflow/asrflow).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+========================================================================
+Third-Party Software and Component Notices
+========================================================================
+
+1. FunASR (Alibaba DAMO Academy / ModelScope)
+   - Components: FSMN-VAD, Paraformer-online, CAM++, CT-Transformer
+   - Source: https://github.com/modelscope/FunASR
+   - License: Apache License, Version 2.0
+
+2. Qwen3-ASR (Alibaba Cloud / Qwen Team)
+   - Components: Qwen3-ASR-1.7B, Qwen3-ASR-0.6B
+   - Source: https://github.com/QwenLM/Qwen3-ASR
+   - License: Qwen License / Terms of Service (as defined by upstream)
+
+3. ONNX Runtime (Microsoft Corporation)
+   - Components: onnxruntime / onnxruntime-gpu inference engines
+   - Source: https://github.com/microsoft/onnxruntime
+   - License: MIT License
+
+========================================================================
+Model Weights Disclaimer and Licensing Boundary
+========================================================================
+
+This repository contains and distributes only the source code and
+orchestration scripts for the ASRFlow runtime engine.
+
+NO DEEP LEARNING MODEL WEIGHTS OR TRAINED PARAMETERS ARE INCLUDED OR
+DISTRIBUTED WITHIN THIS REPOSITORY.
+
+Users are solely responsible for downloading model weights from official
+upstream registries (such as ModelScope or Hugging Face) in accordance
+with the applicable third-party licenses, terms of use, and local
+regulations. The authors and contributors of ASRFlow make no claims of
+ownership and grant no licenses, express or implied, with respect to
+any third-party model weights, and disclaim all warranties regarding
+their suitability, accuracy, or legal compliance for any particular purpose.
