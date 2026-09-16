@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1080" viewBox="0 0 1680 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070F1C"/>
+      <stop offset="55%" stop-color="#0B1728"/>
+      <stop offset="100%" stop-color="#0A1F2A"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="20%" cy="15%" r="45%">
+      <stop offset="0%" stop-color="#0B6E7A" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#0B6E7A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="85%" cy="75%" r="40%">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#0B6E7A"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#152338"/>
+      <stop offset="100%" stop-color="#101C2E"/>
+    </linearGradient>
+    <filter id="s" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1E3348" stroke-width="1" opacity="0.35"/>
+    </pattern>
+    <marker id="aG" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748B"/></marker>
+    <marker id="aT" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2DD4BF"/></marker>
+    <marker id="aE" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#34D399"/></marker>
+    <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#FBBF24"/></marker>
+    <marker id="aV" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#A78BFA"/></marker>
+  </defs>
+
+  <rect width="1680" height="1080" fill="url(#bg)"/>
+  <rect width="1680" height="1080" fill="url(#grid)"/>
+  <rect width="1680" height="1080" fill="url(#glow1)"/>
+  <rect width="1680" height="1080" fill="url(#glow2)"/>
+
+  <!-- header -->
+  <rect x="64" y="48" width="10" height="60" rx="5" fill="url(#brand)" filter="url(#softGlow)"/>
+  <text x="90" y="78" font-family="Noto Sans CJK SC, DejaVu Sans, sans-serif" font-size="36" font-weight="700" fill="#F8FAFC">ASRFlow System Architecture</text>
+  <text x="90" y="110" font-family="Noto Sans CJK SC, DejaVu Sans, sans-serif" font-size="18" fill="#94A3B8">异构 2-Pass 实时语音识别网关  ·  Premium technical overview</text>
+
+  <!-- CLIENT -->
+  <g filter="url(#s)">
+    <rect x="620" y="150" width="440" height="84" rx="20" fill="url(#card)" stroke="#2DD4BF" stroke-opacity="0.55" stroke-width="1.4"/>
+  </g>
+  <circle cx="668" cy="192" r="20" fill="#12353A"/>
+  <text x="668" y="198" text-anchor="middle" font-size="16" fill="#2DD4BF">♪</text>
+  <text x="706" y="186" font-family="Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#F1F5F9">Client</text>
+  <text x="706" y="212" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">16 kHz PCM Mono · 推流与收事件</text>
+  <line x1="840" y1="234" x2="840" y2="268" stroke="#64748B" stroke-width="2.4" marker-end="url(#aG)"/>
+
+  <!-- GATEWAY -->
+  <g filter="url(#s)">
+    <rect x="560" y="272" width="560" height="84" rx="20" fill="url(#card)" stroke="#2DD4BF" stroke-opacity="0.45" stroke-width="1.4"/>
+  </g>
+  <rect x="588" y="296" width="36" height="36" rx="10" fill="#12353A"/>
+  <text x="606" y="320" text-anchor="middle" font-size="14" fill="#2DD4BF">⇄</text>
+  <text x="642" y="308" font-family="Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#F1F5F9">WebSocket Gateway</text>
+  <text x="642" y="334" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">音频流 + 信令分离</text>
+  <line x1="840" y1="356" x2="840" y2="390" stroke="#64748B" stroke-width="2.4" marker-end="url(#aG)"/>
+
+  <!-- BUFFER -->
+  <g filter="url(#s)">
+    <rect x="590" y="394" width="500" height="76" rx="20" fill="url(#card)" stroke="#334155" stroke-width="1.4"/>
+  </g>
+  <text x="840" y="428" text-anchor="middle" font-family="Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#F1F5F9">Audio Ring Buffer</text>
+  <text x="840" y="452" text-anchor="middle" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">低延迟环形缓冲</text>
+
+  <!-- fork -->
+  <line x1="840" y1="470" x2="840" y2="510" stroke="#475569" stroke-width="2.4"/>
+  <line x1="320" y1="510" x2="1360" y2="510" stroke="#475569" stroke-width="2.4"/>
+  <line x1="320" y1="510" x2="320" y2="548" stroke="#34D399" stroke-width="2.6" marker-end="url(#aE)"/>
+  <line x1="1360" y1="510" x2="1360" y2="548" stroke="#2DD4BF" stroke-width="2.6" marker-end="url(#aT)"/>
+
+  <!-- VAD -->
+  <g filter="url(#s)">
+    <rect x="120" y="556" width="400" height="110" rx="20" fill="url(#card)" stroke="#34D399" stroke-opacity="0.55" stroke-width="1.5"/>
+  </g>
+  <rect x="120" y="556" width="10" height="110" rx="5" fill="#34D399"/>
+  <text x="154" y="598" font-family="Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#F1F5F9">FSMN-VAD</text>
+  <text x="154" y="626" font-family="Noto Sans CJK SC, sans-serif" font-size="15" fill="#94A3B8">切句 / 断句</text>
+  <text x="154" y="648" font-family="Noto Sans CJK SC, sans-serif" font-size="13" fill="#34D399">Sentence endpointing</text>
+
+  <!-- Pass-1 -->
+  <g filter="url(#s)">
+    <rect x="1160" y="556" width="400" height="110" rx="20" fill="url(#card)" stroke="#2DD4BF" stroke-opacity="0.6" stroke-width="1.5"/>
+  </g>
+  <rect x="1160" y="556" width="10" height="110" rx="5" fill="#2DD4BF"/>
+  <text x="1194" y="598" font-family="Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#F1F5F9">Paraformer-online</text>
+  <text x="1194" y="626" font-family="Noto Sans CJK SC, sans-serif" font-size="15" fill="#94A3B8">ONNX Runtime · Pass-1</text>
+  <text x="1194" y="648" font-family="Noto Sans CJK SC, sans-serif" font-size="13" fill="#2DD4BF">Partial 200–600 ms · CPU/GPU</text>
+
+  <!-- partial feedback -->
+  <path d="M1560 610 C1620 610 1640 220 1060 180" fill="none" stroke="#2DD4BF" stroke-width="2.2" stroke-dasharray="7 6" marker-end="url(#aT)" opacity="0.85"/>
+  <rect x="1455" y="470" width="150" height="34" rx="17" fill="#12353A" stroke="#2DD4BF" stroke-opacity="0.7"/>
+  <text x="1530" y="492" text-anchor="middle" font-family="Noto Sans CJK SC, sans-serif" font-size="13" font-weight="700" fill="#2DD4BF">→ Partial</text>
+
+  <!-- vad branch -->
+  <line x1="320" y1="666" x2="320" y2="700" stroke="#34D399" stroke-width="2.4"/>
+  <text x="332" y="692" font-family="Noto Sans CJK SC, sans-serif" font-size="12" fill="#34D399">静音成句</text>
+  <line x1="180" y1="700" x2="520" y2="700" stroke="#475569" stroke-width="2.4"/>
+  <line x1="180" y1="700" x2="180" y2="736" stroke="#FBBF24" stroke-width="2.6" marker-end="url(#aA)"/>
+  <line x1="520" y1="700" x2="520" y2="736" stroke="#A78BFA" stroke-width="2.6" marker-end="url(#aV)"/>
+
+  <!-- Provisional -->
+  <g filter="url(#s)">
+    <rect x="40" y="744" width="280" height="96" rx="20" fill="url(#card)" stroke="#FBBF24" stroke-opacity="0.55" stroke-width="1.5"/>
+  </g>
+  <rect x="40" y="744" width="10" height="96" rx="5" fill="#FBBF24"/>
+  <text x="72" y="784" font-family="Noto Sans CJK SC, sans-serif" font-size="20" font-weight="700" fill="#F1F5F9">Provisional</text>
+  <text x="72" y="810" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">快速整句 → Client</text>
+
+  <!-- FinalQueue -->
+  <g filter="url(#s)">
+    <rect x="380" y="744" width="280" height="96" rx="20" fill="url(#card)" stroke="#A78BFA" stroke-opacity="0.55" stroke-width="1.5"/>
+  </g>
+  <rect x="380" y="744" width="10" height="96" rx="5" fill="#A78BFA"/>
+  <text x="412" y="784" font-family="Noto Sans CJK SC, sans-serif" font-size="20" font-weight="700" fill="#F1F5F9">FinalQueue</text>
+  <text x="412" y="810" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">微批聚合 Micro-batch</text>
+
+  <line x1="520" y1="840" x2="520" y2="880" stroke="#A78BFA" stroke-width="2.6" marker-end="url(#aV)"/>
+
+  <!-- vLLM -->
+  <g filter="url(#s)">
+    <rect x="300" y="888" width="560" height="88" rx="20" fill="url(#card)" stroke="#A78BFA" stroke-opacity="0.6" stroke-width="1.5"/>
+  </g>
+  <rect x="300" y="888" width="10" height="88" rx="5" fill="#A78BFA"/>
+  <text x="334" y="926" font-family="Noto Sans CJK SC, sans-serif" font-size="20" font-weight="700" fill="#F1F5F9">Independent vLLM · Qwen3-ASR</text>
+  <text x="334" y="952" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#94A3B8">Pass-2 异步二遍 · HTTP · 高精度标点定稿</text>
+
+  <line x1="860" y1="932" x2="980" y2="932" stroke="#A78BFA" stroke-width="2.6" marker-end="url(#aV)"/>
+
+  <g filter="url(#s)">
+    <rect x="990" y="888" width="300" height="40" rx="14" fill="url(#card)" stroke="#A78BFA" stroke-opacity="0.45"/>
+  </g>
+  <text x="1140" y="914" text-anchor="middle" font-family="Noto Sans CJK SC, sans-serif" font-size="16" font-weight="700" fill="#F1F5F9">Consistency Guard</text>
+  <line x1="1140" y1="928" x2="1140" y2="952" stroke="#A78BFA" stroke-width="2.6" marker-end="url(#aV)"/>
+  <g filter="url(#s)">
+    <rect x="990" y="956" width="300" height="40" rx="14" fill="#1B1233" stroke="#A78BFA" stroke-opacity="0.7"/>
+  </g>
+  <text x="1140" y="982" text-anchor="middle" font-family="Noto Sans CJK SC, sans-serif" font-size="15" font-weight="700" fill="#C4B5FD">→ Client Final 定稿</text>
+
+  <!-- legend -->
+  <g filter="url(#s)">
+    <rect x="64" y="1008" width="780" height="48" rx="14" fill="#101C2E" stroke="#243447"/>
+  </g>
+  <circle cx="96" cy="1032" r="7" fill="#2DD4BF"/>
+  <text x="112" y="1037" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#CBD5E1">Pass-1 流式</text>
+  <circle cx="250" cy="1032" r="7" fill="#34D399"/>
+  <text x="266" y="1037" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#CBD5E1">VAD 切句</text>
+  <circle cx="400" cy="1032" r="7" fill="#FBBF24"/>
+  <text x="416" y="1037" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#CBD5E1">Provisional</text>
+  <circle cx="570" cy="1032" r="7" fill="#A78BFA"/>
+  <text x="586" y="1037" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#CBD5E1">Pass-2 Final</text>
+</svg>

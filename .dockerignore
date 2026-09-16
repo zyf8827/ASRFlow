@@ -1,0 +1,23 @@
+# 构建上下文裁剪: 排除与镜像无关的大目录/文件。
+# 注意: models/ 必须保留 —— 它是离线模型打包目录 (人工拷入或脚本生成)。
+# 流式 Paraformer 的 torch 原始模型仅是 ONNX 导出的输入 (构建机上供
+# scripts/export_onnx.py 使用), 服务运行不需要, 排除出镜像省 ~285MB。
+models/speech_paraformer*
+.git
+.gitignore
+.dockerignore
+.venv
+.idea
+.vscode
+.cache
+__pycache__
+**/__pycache__
+*.py[cod]
+logs
+*.log
+tests
+docs
+demo
+benchmark
+test1.mp3
+*.md

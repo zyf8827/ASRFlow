@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASRFlow 控制台</title>
+<style>
+  :root {
+    --bg: #0e131a;
+    --panel: #151d27;
+    --panel-2: #1a2432;
+    --border: #243040;
+    --text: #d8e1ec;
+    --muted: #7d8b9c;
+    --green: #4ade80;
+    --cyan: #38bdf8;
+    --orange: #fbbf24;
+    --red: #f87171;
+    --grey: #94a3b8;
+    --violet: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ---------- 页眉 + Tab ---------- */
+  header {
+    display: flex; flex-wrap: wrap; gap: 4px 24px; align-items: center;
+    padding: 0 22px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #131b26, #0e131a);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 13px 0; }
+  .brand h1 { font-size: 17px; font-weight: 600; letter-spacing: .5px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--grey); box-shadow: 0 0 6px rgba(148,163,184,.6);
+    flex: none;
+  }
+  .dot.ok   { background: var(--green); box-shadow: 0 0 8px rgba(74,222,128,.7); }
+  .dot.fail { background: var(--red);   box-shadow: 0 0 8px rgba(248,113,113,.7); }
+
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tab {
+    background: none; border: none; color: var(--muted);
+    font: inherit; font-size: 14px; padding: 16px 14px 13px;
+    border-bottom: 2px solid transparent; cursor: pointer;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 22px 40px; }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+
+  /* ---------- 通用面板 ---------- */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 15px 17px; margin-bottom: 14px;
+  }
+  .panel h2 {
+    font-size: 14px; font-weight: 600; margin-bottom: 11px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .panel h2 .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+  .panel h2 .spacer { margin-left: auto; }
+
+  label.field { display: block; margin-bottom: 10px; }
+  label.field > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 9px; font: inherit; font-size: 13px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--cyan); }
+  input[type="file"] { font-size: 12.5px; color: var(--muted); width: 100%; }
+  input[type="checkbox"] { accent-color: var(--cyan); }
+  input[type="number"] { width: 72px; }
+
+  .btn {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer;
+    transition: filter .12s;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.2); }
+  .btn:disabled { opacity: .38; cursor: not-allowed; }
+  .btn.primary { background: #0e5f8f; border-color: #1a7cb8; }
+  .btn.danger  { background: #7f2b2b; border-color: #a63d3d; }
+  .btn.ghost   { background: none; padding: 3px 9px; font-size: 12px; }
+  .btn.active  { color: var(--orange); border-color: var(--orange); }
+
+  .badge {
+    display: inline-block; padding: 1px 9px; border-radius: 999px;
+    font-size: 11.5px; border: 1px solid transparent; white-space: nowrap;
+  }
+  .badge.ok    { color: var(--green);  border-color: rgba(74,222,128,.4);  background: rgba(74,222,128,.08); }
+  .badge.warn  { color: var(--orange); border-color: rgba(251,191,36,.4);  background: rgba(251,191,36,.08); }
+  .badge.grey  { color: var(--grey);   border-color: rgba(148,163,184,.4); background: rgba(148,163,184,.08); }
+  .badge.cyan  { color: var(--cyan);   border-color: rgba(56,189,248,.4);  background: rgba(56,189,248,.08); }
+  .badge.red   { color: var(--red);    border-color: rgba(248,113,113,.4); background: rgba(248,113,113,.08); }
+  .badge.pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  .chip {
+    font-size: 11.5px; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 1px 9px; font-variant-numeric: tabular-nums;
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  .progress-wrap {
+    height: 7px; background: var(--panel-2); border-radius: 4px;
+    overflow: hidden; margin: 8px 0 3px;
+  }
+  .progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #1a7cb8, var(--cyan));
+    transition: width .15s linear;
+  }
+  .progress-text { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .meter-wrap { height: 7px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin: 8px 0 3px; }
+  .meter-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--green), var(--orange), var(--red)); transition: width .08s linear; }
+
+  /* ---------- 功能测试布局 ---------- */
+  .test-grid { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .test-grid { grid-template-columns: 1fr; } }
+
+  .row-flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .note { font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+
+  /* ---------- 转写区 ---------- */
+  .live-line {
+    color: var(--cyan); font-size: 14.5px; padding: 8px 10px;
+    background: rgba(56,189,248,.05); border-left: 3px solid var(--cyan);
+    border-radius: 4px; margin-bottom: 10px; min-height: 20px;
+    display: none; word-break: break-all;
+  }
+  #transcript { display: flex; flex-direction: column; gap: 2px; }
+  .sent {
+    display: flex; gap: 8px; align-items: baseline;
+    padding: 4px 8px; border-radius: 5px; word-break: break-all;
+  }
+  .sent .ts { color: var(--muted); font-size: 11.5px; flex: none; font-variant-numeric: tabular-nums; }
+  .sent .spk { font-size: 11.5px; flex: none; color: var(--violet); font-weight: 600; }
+  .sent .txt { flex: 1; }
+  .sent.prov { color: var(--grey); }
+  .sent.prov .txt::before { content: "~ "; color: var(--muted); }
+  .sent.final .txt { color: var(--green); }
+  .sent.final.fallback .txt { color: var(--orange); }
+  .sent .mark { font-size: 11px; color: var(--orange); white-space: nowrap; }
+  .sent .mark.review { color: var(--grey); }
+  .sent.empty-final .txt { color: var(--muted); }
+
+  .summary-line { margin-top: 10px; font-size: 12.5px; color: var(--muted); display: none; }
+
+  /* ---------- WS 帧监控 ---------- */
+  .wslog {
+    max-height: 320px; overflow: auto;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: #101720; padding: 6px 10px;
+    font: 11.5px/1.75 ui-monospace, Menlo, Consolas, monospace;
+  }
+  .le { display: flex; gap: 9px; align-items: baseline; min-width: 0; }
+  .le .t  { color: #56637a; flex: none; }
+  .le .d  { flex: none; font-weight: 700; width: 10px; text-align: center; }
+  .le.in  .d { color: var(--cyan); }
+  .le.out .d { color: var(--green); }
+  .le.evt .d { color: var(--grey); }
+  .le.err .d { color: var(--red); }
+  .le .m  { color: #56637a; flex: none; font-variant-numeric: tabular-nums; }
+  .le .x  { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .le.bin .x { color: var(--muted); }
+  .le.evt .x, .le.err .x { color: var(--muted); }
+  .le.err .x { color: var(--red); }
+  .ws-stats { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ws-stats b { color: var(--text); font-weight: 600; }
+
+  /* ---------- 指标监控 ---------- */
+  .metric-toolbar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    color: var(--muted); font-size: 12.5px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 16px; margin-bottom: 14px;
+  }
+  .metric-toolbar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  #spark { vertical-align: middle; margin-left: auto; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: 12px; margin-bottom: 14px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 15px;
+  }
+  .card .label { font-size: 12px; color: var(--muted); }
+  .card .value { font-size: 26px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .card .value.warn { color: var(--orange); }
+  .card .value.bad  { color: var(--red); }
+  .card .hint { font-size: 11px; color: var(--muted); margin-top: 3px; min-height: 14px; }
+
+  .kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px 28px;
+  }
+  .kv { display: flex; justify-content: space-between; padding: 5px 2px; border-bottom: 1px dashed #1f2a39; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-variant-numeric: tabular-nums; }
+
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td.num, th.num { text-align: right; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+  td.muted { color: var(--muted); }
+  .empty { color: var(--muted); text-align: center; padding: 18px 0 !important; }
+
+  footer {
+    max-width: 1280px; margin: 0 auto; padding: 0 22px 30px;
+    color: var(--muted); font-size: 12px;
+  }
+  footer a { color: var(--cyan); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="dot" id="svc-dot" title="指标接口状态"></span>
+    <h1>ASRFlow 控制台</h1>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="test">功能测试</button>
+    <button class="tab" data-tab="metrics">指标监控</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= Tab 1: 功能测试 ================= -->
+  <section id="tab-test" class="tabpane active">
+    <div class="test-grid">
+      <div class="col-ctrl">
+
+        <section class="panel">
+          <h2>服务连接 <span class="badge grey" id="test-status">未连接</span></h2>
+          <label class="field"><span>WebSocket 地址</span>
+            <input type="text" id="ws-url" placeholder="ws://host:10095">
+          </label>
+          <label class="field"><span>热词（逗号分隔，可空）</span>
+            <input type="text" id="hotwords" placeholder="星巴克,电影院">
+          </label>
+          <div class="row-flex" style="margin-bottom: 4px;">
+            <label class="row-flex" style="gap:5px;margin:0;">
+              <input type="checkbox" id="enable-spk" checked> <span style="font-size:12.5px;">说话人分离</span>
+            </label>
+            <label class="row-flex" style="gap:5px;margin:0;">
+              <span style="font-size:12.5px;color:var(--muted);">人数</span>
+              <input type="number" id="spk-count" value="2" min="1" max="8">
+            </label>
+          </div>
+          <p class="note">页面与音频处理均在本机浏览器完成，音频不会上传到第三方。</p>
+        </section>
+
+        <section class="panel">
+          <h2>音频文件推流</h2>
+          <input type="file" id="file-input" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg,.aac">
+          <div class="row-flex" style="margin-top:9px;">
+            <span style="font-size:12.5px;color:var(--muted);">倍速</span>
+            <select id="file-speed" style="width:auto;">
+              <option value="1">1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+            <button class="btn primary" id="btn-file-start" disabled>开始推流</button>
+            <button class="btn" id="btn-file-pause" disabled>暂停</button>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar" id="file-progress"></div></div>
+          <div class="progress-text" id="file-progress-text">尚未加载音频</div>
+          <p class="note">文件在浏览器内解码并重采样为 PCM16/16kHz 单声道后，按所选倍速模拟实时推流，推完自动发送 STOP。</p>
+        </section>
+
+        <section class="panel">
+          <h2>麦克风实时收音</h2>
+          <div class="row-flex">
+            <button class="btn primary" id="btn-mic-start">开始收音</button>
+            <button class="btn" id="btn-mic-pause" disabled>暂停收音</button>
+          </div>
+          <div class="meter-wrap"><div class="meter-bar" id="mic-meter"></div></div>
+          <div class="progress-text" id="mic-sent">已发送 0.0s 音频</div>
+          <p class="note">需要浏览器授权麦克风（仅 localhost / HTTPS 可用）。采集为连续流，点击「结束会话」发送 STOP。</p>
+        </section>
+
+        <section class="panel">
+          <h2>会话控制</h2>
+          <div class="row-flex">
+            <button class="btn" id="btn-commit" disabled>手动断句 COMMIT</button>
+            <button class="btn danger" id="btn-stop" disabled>结束会话</button>
+          </div>
+          <div class="summary-line" id="session-summary"></div>
+        </section>
+
+      </div>
+
+      <div class="col-out">
+        <section class="panel">
+          <h2>
+            实时转写
+            <span class="chip">partial <b id="chip-partial">0</b></span>
+            <span class="chip">定稿 <b id="chip-final">0</b></span>
+            <span class="chip">回退 <b id="chip-fallback">0</b></span>
+            <span class="chip">复核 <b id="chip-review">0</b></span>
+            <span class="spacer"></span>
+            <button class="btn ghost" id="btn-copy">复制</button>
+            <button class="btn ghost" id="btn-clear">清空</button>
+          </h2>
+          <div class="live-line" id="live-partial"></div>
+          <div id="transcript"></div>
+          <div class="empty" id="empty-transcript">尚未开始 —— 选择音频文件推流，或点击「开始收音」</div>
+        </section>
+
+        <section class="panel">
+          <h2>
+            WS 帧监控
+            <span class="ws-stats" id="ws-stats">暂无记录</span>
+            <span class="spacer"></span>
+            <span class="hint">仅保留最近 1000 帧 · 悬停查看完整内容</span>
+            <button class="btn ghost" id="ws-toggle">展开</button>
+          </h2>
+          <div id="ws-collapsible" style="display:none;">
+          <div class="row-flex" style="margin-bottom:9px;">
+            <select id="ws-fdir" style="width:auto;">
+              <option value="">方向 全部</option>
+              <option value="out">↑ 上行</option>
+              <option value="in">↓ 下行</option>
+            </select>
+            <select id="ws-fkind" style="width:auto;">
+              <option value="">类型 全部</option>
+              <option value="text">文本信令</option>
+              <option value="bin">音频帧</option>
+            </select>
+            <input type="text" id="ws-fq" placeholder="内容包含…" style="width:130px;">
+            <label class="row-flex" style="gap:5px;margin:0;font-size:12.5px;color:var(--muted);">
+              <input type="checkbox" id="ws-auto" checked> 自动滚动
+            </label>
+            <button class="btn ghost" id="ws-btn-pause">暂停显示</button>
+            <button class="btn ghost" id="ws-btn-copy">复制</button>
+            <button class="btn ghost" id="ws-btn-save">下载</button>
+            <button class="btn ghost" id="ws-btn-clear">清空</button>
+          </div>
+          <div class="wslog" id="ws-log"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Tab 2: 指标监控 ================= -->
+  <section id="tab-metrics" class="tabpane">
+    <div class="metric-toolbar">
+      <span>状态 <b id="metric-status-text">加载中</b></span>
+      <span>运行 <b id="uptime">--</b></span>
+      <span id="updated">--</span>
+      <select id="interval">
+        <option value="2000">2s</option>
+        <option value="5000" selected>5s</option>
+        <option value="10000">10s</option>
+      </select>
+      <button class="btn" id="pause">暂停</button>
+      <canvas id="spark" width="180" height="34" title="在线会话数（近期采样）"></canvas>
+    </div>
+
+    <section class="cards" id="cards"></section>
+
+    <section class="panel">
+      <h2>运行环境 <span class="hint">来源 GET /ready · /healthz</span></h2>
+      <div class="kv-grid" id="runtime"></div>
+    </section>
+
+    <section class="panel">
+      <h2>延迟与质量指标 <span class="hint">来源 GET /metrics · 每项为最近 1000 个样本的分位数</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th><th class="num">样本数</th><th class="num">平均</th>
+            <th class="num">P50</th><th class="num">P90</th><th class="num">P95</th><th class="num">P99</th>
+          </tr>
+        </thead>
+        <tbody id="latency-body"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>活跃会话 <span class="hint" id="session-hint">来源 GET /api/v1/sessions</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>会话 ID</th><th>创建时间</th><th class="num">空闲</th><th class="num">句子数</th><th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="session-body"></tbody>
+      </table>
+    </section>
+  </section>
+</main>
+
+<footer>
+  原始数据：
+  <a href="/healthz" target="_blank">/healthz</a> ·
+  <a href="/ready" target="_blank">/ready</a> ·
+  <a href="/metrics" target="_blank">/metrics</a> ·
+  <a href="/api/v1/sessions" target="_blank">/api/v1/sessions</a>
+  &nbsp;|&nbsp; 客户端接入协议见 docs/client-integration-guide.md
+</footer>
+
+<script>
+"use strict";
+
+/* ================================================================
+ * 通用工具
+ * ================================================================ */
+
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function fmtInt(v) {
+  return (v === null || v === undefined) ? "--" : Math.round(v).toLocaleString("zh-CN");
+}
+
+function fmtFloat(v, digits) {
+  return (v === null || v === undefined) ? "--" : v.toFixed(digits);
+}
+
+function fmtDuration(sec) {
+  if (sec === null || sec === undefined) return "--";
+  sec = Math.max(0, Math.floor(sec));
+  var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h > 0) return h + "时" + String(m).padStart(2, "0") + "分";
+  if (m > 0) return m + "分" + String(s).padStart(2, "0") + "秒";
+  return s + "秒";
+}
+
+function fmtTs(ms) {
+  var s = Math.max(0, Math.floor((ms || 0) / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+function fetchJSON(url, timeoutMs) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, timeoutMs || 4000);
+  return fetch(url, { cache: "no-store", signal: ctrl.signal })
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then(function (text) { clearTimeout(timer); return JSON.parse(text); })
+    .catch(function (err) { clearTimeout(timer); throw err; });
+}
+
+function fetchText(url, timeoutMs) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, timeoutMs || 4000);
+  return fetch(url, { cache: "no-store", signal: ctrl.signal })
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then(function (text) { clearTimeout(timer); return text; })
+    .catch(function (err) { clearTimeout(timer); throw err; });
+}
+
+/* ================================================================
+ * Tab 切换
+ * ================================================================ */
+
+(function initTabs() {
+  var btns = document.querySelectorAll(".tab");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".tabpane").forEach(function (p) { p.classList.remove("active"); });
+      this.classList.add("active");
+      $("tab-" + this.dataset.tab).classList.add("active");
+    });
+  }
+})();
+
+/* ================================================================
+ * Tab 1: 功能测试 —— 音频推流 + 实时转写
+ * ================================================================ */
+
+var T = {
+  state: "idle",            // idle|preparing|connecting|ready|streaming|stopping|finished|error
+  ws: null,
+  sessionId: null,
+  mode: null,               // "file" | "mic"
+  // 文件推流
+  filePCM: null,            // Int16Array @16kHz
+  fileOffset: 0, fileSentMs: 0, fileTotalMs: 0, fileTimer: null,
+  filePaused: false,
+  // 麦克风
+  micCtx: null, micStream: null, micSource: null, micProc: null,
+  micSentMs: 0, meterAvg: 0,
+  micPaused: false,
+  // 结果统计
+  nPartial: 0, nProv: 0, nFinal: 0, nFallback: 0, nReview: 0,
+  rows: {},                 // sentence_id -> {el, final, fallback, text, speaker}
+  finishedAt: null
+};
+
+var STATE_BADGE = {
+  idle:       ["未连接", "grey"],
+  preparing:  ["准备音频…", "cyan"],
+  connecting: ["连接中…", "cyan"],
+  ready:      ["已就绪", "ok"],
+  streaming:  ["识别中", "ok"],
+  stopping:   ["等待定稿…", "warn"],
+  finished:   ["已完成", "grey"],
+  error:      ["错误", "red"]
+};
+
+function setState(s) {
+  T.state = s;
+  var pair = STATE_BADGE[s] || ["?", "grey"];
+  var badge = $("test-status");
+  badge.textContent = pair[0];
+  badge.className = "badge " + pair[1] + (s === "streaming" ? " pulse" : "");
+
+  var streaming = s === "streaming";
+  var idleish = s === "idle" || s === "finished" || s === "error";
+  $("btn-file-start").disabled = !(idleish && T.filePCM);
+  $("btn-mic-start").disabled = !idleish;
+  $("btn-stop").disabled = !(streaming || s === "ready");
+  $("btn-commit").disabled = !streaming;
+  $("file-input").disabled = !idleish;
+  $("file-speed").disabled = !idleish;
+  $("ws-url").disabled = !idleish;
+  $("hotwords").disabled = !idleish;
+  $("enable-spk").disabled = !idleish;
+  $("spk-count").disabled = !idleish;
+
+  // 暂停按钮：仅在对应模式的 streaming/suspended 时可用
+  $("btn-file-pause").disabled = !(streaming && T.mode === "file");
+  $("btn-mic-pause").disabled = !(streaming && T.mode === "mic");
+  if (!streaming) {
+    // 重置暂停态
+    T.filePaused = false;
+    T.micPaused = false;
+    $("btn-file-pause").textContent = "暂停";
+    $("btn-mic-pause").textContent = "暂停收音";
+    $("btn-file-pause").classList.remove("active");
+    $("btn-mic-pause").classList.remove("active");
+  }
+  // 进入 streaming 立即隐藏空态提示
+  if (streaming || s === "ready") {
+    $("empty-transcript").style.display = "none";
+  }
+}
+
+/* ---------- WS 帧监控 (所有上下行帧, 便于诊断) ---------- */
+
+var WSMon = {
+  entries: [],              // {ts, cls, kind, size, text, full}
+  paused: false,
+  maxMem: 1000,
+  maxDom: 250,
+  stats: { upText: 0, upBin: 0, upBytes: 0, downText: 0, downBin: 0, downBytes: 0 }
+};
+
+function wsNow() {
+  var d = new Date();
+  return d.toLocaleTimeString("zh-CN", { hour12: false }) + "." + String(d.getMilliseconds()).padStart(3, "0");
+}
+
+function wsTrunc(s) {
+  return s.length > 400 ? s.slice(0, 400) + "…" : s;
+}
+
+// cls: "in"|"out"|"evt"|"err"; kind: "text"|"bin"|"evt"
+function wsLog(cls, kind, size, text, full) {
+  WSMon.entries.push({ ts: wsNow(), cls: cls, kind: kind, size: size || 0, text: text, full: full || text });
+  if (WSMon.entries.length > WSMon.maxMem) WSMon.entries.splice(0, WSMon.entries.length - WSMon.maxMem);
+  if (cls === "out") {
+    if (kind === "bin") { WSMon.stats.upBin++; WSMon.stats.upBytes += size; }
+    else WSMon.stats.upText++;
+  } else if (cls === "in") {
+    if (kind === "bin") { WSMon.stats.downBin++; WSMon.stats.downBytes += size; }
+    else WSMon.stats.downText++;
+  }
+  wsUpdateStats();
+  var collapsible = $("ws-collapsible");
+  var collapsed = collapsible && collapsible.style.display === "none";
+  if (!collapsed && !WSMon.paused && wsFilterMatch(WSMon.entries[WSMon.entries.length - 1])) wsAppendRow(WSMon.entries[WSMon.entries.length - 1]);
+}
+
+function wsEvt(text, isErr) {
+  wsLog(isErr ? "err" : "evt", "evt", 0, text);
+}
+
+function wsRow(e) {
+  var el = document.createElement("div");
+  var arrow = e.cls === "out" ? "↑" : e.cls === "in" ? "↓" : e.cls === "err" ? "✖" : "•";
+  var meta = e.kind === "bin"
+    ? e.size + "B · " + Math.round(e.size / 32) + "ms"
+    : (e.size ? e.size + "B" : "");
+  el.className = "le " + e.cls + (e.kind === "bin" ? " bin" : "");
+  el.innerHTML = '<span class="t">' + e.ts + '</span><span class="d">' + arrow + '</span>' +
+    '<span class="m">' + esc(meta) + '</span>' +
+    '<span class="x" title="' + esc(e.full) + '">' + esc(e.text) + "</span>";
+  return el;
+}
+
+function wsAppendRow(e) {
+  var box = $("ws-log");
+  box.appendChild(wsRow(e));
+  while (box.childNodes.length > WSMon.maxDom) box.removeChild(box.firstChild);
+  if ($("ws-auto").checked) box.scrollTop = box.scrollHeight;
+}
+
+function wsFilterMatch(e) {
+  var dir = $("ws-fdir").value, kind = $("ws-fkind").value, q = $("ws-fq").value.trim();
+  if (dir && e.cls !== dir) return false;
+  if (kind && e.kind !== kind) return false;
+  if (q && (e.full || "").indexOf(q) === -1) return false;
+  return true;
+}
+
+function wsRender() {
+  var box = $("ws-log");
+  box.innerHTML = "";
+  var shown = 0;
+  for (var i = WSMon.entries.length - 1; i >= 0 && shown < WSMon.maxDom; i--) {
+    if (wsFilterMatch(WSMon.entries[i])) { box.insertBefore(wsRow(WSMon.entries[i]), box.firstChild); shown++; }
+  }
+  if ($("ws-auto").checked) box.scrollTop = box.scrollHeight;
+}
+
+function wsFmtBytes(n) {
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : (n / 1024).toFixed(1) + "KB";
+}
+
+function wsUpdateStats() {
+  if (!WSMon.entries.length) {
+    $("ws-stats").textContent = "暂无记录";
+    return;
+  }
+  var s = WSMon.stats;
+  $("ws-stats").innerHTML =
+    "↑ <b>" + s.upText + "</b> 信令 · <b>" + s.upBin + "</b> 音频帧(<b>" +
+    (s.upBin ? (s.upBytes / 32000).toFixed(1) : "0.0") + "s</b>) · " + wsFmtBytes(s.upBytes) +
+    " ｜ ↓ <b>" + s.downText + "</b> 信令 · <b>" + s.downBin + "</b> 帧 · " + wsFmtBytes(s.downBytes) +
+    (WSMon.paused ? " ｜ <b>显示已暂停, 后台记录中</b>" : "");
+}
+
+function wsVisibleEntries() {
+  return WSMon.entries.filter(wsFilterMatch);
+}
+
+function wsEntriesToText(list) {
+  return list.map(function (e) {
+    var arrow = e.cls === "out" ? "↑" : e.cls === "in" ? "↓" : e.cls === "err" ? "✖" : "•";
+    var meta = e.kind === "bin" ? "[" + e.size + "B · " + Math.round(e.size / 32) + "ms]" : (e.size ? "[" + e.size + "B]" : "");
+    return e.ts + " " + arrow + " " + meta + " " + (e.full || e.text);
+  }).join("\n");
+}
+
+/* ---------- 音频工具 ---------- */
+
+function floatToInt16(f32) {
+  var out = new Int16Array(f32.length);
+  for (var i = 0; i < f32.length; i++) {
+    var s = Math.max(-1, Math.min(1, f32[i]));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return out;
+}
+
+function downsampleTo16k(f32, inRate) {
+  if (inRate === 16000) return f32;
+  var ratio = inRate / 16000;
+  var outLen = Math.floor(f32.length / ratio);
+  var out = new Float32Array(outLen);
+  for (var i = 0; i < outLen; i++) out[i] = f32[Math.floor(i * ratio)];
+  return out;
+}
+
+/* ---------- WebSocket 会话 ---------- */
+
+function buildStartPayload() {
+  var hw = $("hotwords").value.split(/[,，]/).map(function (s) { return s.trim(); })
+    .filter(function (s) { return s.length > 0; });
+  return {
+    type: "start",
+    session_id: T.sessionId,
+    language: "zh",
+    enable_spk: $("enable-spk").checked,
+    expected_speakers: parseInt($("spk-count").value, 10) || 2,
+    hotwords: hw
+  };
+}
+
+function connectSession(mode) {
+  T.mode = mode;
+  T.sessionId = "web-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  setState("connecting");
+
+  var ws;
+  try {
+    ws = new WebSocket($("ws-url").value.trim());
+  } catch (e) {
+    wsEvt("WebSocket 构造失败: " + e.message, true);
+    setState("error");
+    return;
+  }
+  T.ws = ws;
+
+  // 统一记录所有上行帧: 文本信令与二进制音频
+  var rawSend = ws.send.bind(ws);
+  ws.send = function (data) {
+    try {
+      if (typeof data === "string") {
+        wsLog("out", "text", data.length, wsTrunc(data), data);
+      } else {
+        var bytes = data && data.byteLength !== undefined ? data.byteLength : (data ? data.length : 0);
+        wsLog("out", "bin", bytes, "[PCM16 音频帧 " + bytes + "B · " + Math.round(bytes / 32) + "ms]");
+      }
+    } catch (e) { /* 记录失败不影响发送 */ }
+    return rawSend(data);
+  };
+
+  var opened = false;
+  ws.onopen = function () {
+    opened = true;
+    wsEvt("连接已建立 " + $("ws-url").value);
+    var payload = buildStartPayload();
+    ws.send(JSON.stringify(payload));
+  };
+  ws.onmessage = function (ev) {
+    var d = ev.data;
+    if (typeof d !== "string") {
+      var bytes = (d && d.byteLength !== undefined) ? d.byteLength : ((d && d.size) || 0);
+      wsLog("in", "bin", bytes, "[服务端二进制帧 " + bytes + "B]");
+      return;
+    }
+    wsLog("in", "text", d.length, wsTrunc(d), d);
+    var parsed;
+    try { parsed = JSON.parse(d); } catch (e) { return; }
+    handleServerMsg(parsed);
+  };
+  ws.onclose = function () {
+    var active = ["streaming", "ready", "connecting", "stopping"].indexOf(T.state) !== -1;
+    wsEvt("连接关闭" + (opened ? "" : " (握手失败)"), active);
+    if (active) setState("error");
+    cleanupAudio();
+    T.ws = null;
+  };
+  ws.onerror = function () {
+    if (!opened) {
+      wsEvt("无法连接 " + $("ws-url").value, true);
+      setState("error");
+    }
+  };
+}
+
+function handleServerMsg(d) {
+  switch (d.type) {
+    case "session_ready":
+    case "session_resumed":
+      setState("ready");
+      if (T.mode === "file") startFileStreaming();
+      else startMicSending();
+      break;
+    case "partial":
+      T.nPartial++;
+      $("chip-partial").textContent = T.nPartial;
+      renderPartial(d.text || "");
+      break;
+    case "provisional":
+      T.nProv++;
+      upsertSentence(d, false);
+      break;
+    case "final":
+      T.nFinal++;
+      if (d.final_source && d.final_source !== "qwen3-asr") { T.nFallback++; $("chip-fallback").textContent = T.nFallback; }
+      if (d.needs_review) { T.nReview++; $("chip-review").textContent = T.nReview; }
+      $("chip-final").textContent = T.nFinal;
+      upsertSentence(d, true);
+      break;
+    case "session_finished":
+      T.finishedAt = Date.now();
+      renderPartial("");
+      var el = $("session-summary");
+      el.style.display = "block";
+      el.textContent = "会话完成 —— 共 " + (d.total_sentences || 0) + " 句 · 时长 " + fmtDuration((d.duration_ms || 0) / 1000) +
+        " · 会话 " + T.sessionId;
+      setState("finished");
+      cleanupAudio();
+      setTimeout(function () { if (T.ws) { try { T.ws.close(); } catch (e) {} } }, 300);
+      break;
+    case "pong":
+    case "error":
+      if (d.type === "error") wsEvt("服务端错误 " + (d.code || "") + ": " + (d.message || ""), true);
+      break;
+    default:
+      break;
+  }
+}
+
+function sendAudio(int16) {
+  if (T.ws && T.ws.readyState === 1 && T.state === "streaming") {
+    T.ws.send(int16.buffer);
+  }
+}
+
+/* ---------- 文件推流 ---------- */
+
+function loadAudioFile(file) {
+  setState("preparing");
+  $("file-progress-text").textContent = "解码中… " + file.name;
+  file.arrayBuffer().then(function (raw) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var tmp = new AC();
+    return tmp.decodeAudioData(raw).then(function (buf) { tmp.close(); return buf; });
+  }).then(function (buf) {
+    // OfflineAudioContext 重采样 + 自动混为单声道 (16kHz)
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var off = new OAC(1, Math.ceil(buf.duration * 16000), 16000);
+    var src = off.createBufferSource();
+    src.buffer = buf;
+    src.connect(off.destination);
+    src.start();
+    return off.startRendering();
+  }).then(function (rendered) {
+    T.filePCM = floatToInt16(rendered.getChannelData(0));
+    T.fileTotalMs = T.filePCM.length / 16;   // 16 samples per ms @16kHz
+    T.fileOffset = 0;
+    T.fileSentMs = 0;
+    $("file-progress").style.width = "0%";
+    $("file-progress-text").textContent =
+      "已就绪 " + file.name + " · " + fmtDuration(T.fileTotalMs / 1000) +
+      " · " + bufNote(file) + " → PCM16/16k 单声道";
+    setState("idle");
+    $("btn-file-start").disabled = false;
+  }).catch(function (err) {
+    $("file-progress-text").textContent = "解码失败: " + (err && err.message || err);
+    wsEvt("音频解码失败: " + (err && err.message || err), true);
+    setState("error");
+  });
+}
+
+function bufNote(file) {
+  var kb = file.size / 1024;
+  return kb > 1024 ? (kb / 1024).toFixed(1) + "MB" : Math.round(kb) + "KB";
+}
+
+function startFileStreaming() {
+  setState("streaming");
+  T.fileOffset = 0;
+  T.fileSentMs = 0;
+  pumpFile();
+}
+
+function pumpFile() {
+  if (T.state !== "streaming" || T.mode !== "file") return;
+  if (T.filePaused) {
+    $("file-progress-text").textContent = "已暂停 " + (T.fileSentMs / 1000).toFixed(1) + "s / " + (T.fileTotalMs / 1000).toFixed(1) + "s";
+    return;
+  }
+  var per = 960; // 60ms @16kHz
+  var end = Math.min(T.fileOffset + per, T.filePCM.length);
+  var part = T.filePCM.slice(T.fileOffset, end); // 拷贝出独立 buffer
+  T.fileOffset = end;
+  T.fileSentMs = end / 16;
+  if (T.ws && T.ws.readyState === 1) T.ws.send(part.buffer);
+  $("file-progress").style.width = (T.fileOffset / T.filePCM.length * 100).toFixed(1) + "%";
+  $("file-progress-text").textContent = "推流中 " + (T.fileSentMs / 1000).toFixed(1) + "s / " + (T.fileTotalMs / 1000).toFixed(1) + "s";
+  if (end < T.filePCM.length) {
+    var speed = parseFloat($("file-speed").value) || 1;
+    T.fileTimer = setTimeout(pumpFile, Math.max(1, 60 / speed));
+  } else {
+    wsEvt("文件推流完毕 (" + (T.fileTotalMs / 1000).toFixed(1) + "s), 自动发送 stop");
+    requestStop();
+  }
+}
+
+function toggleFilePause() {
+  if (T.state !== "streaming" || T.mode !== "file") return;
+  T.filePaused = !T.filePaused;
+  var btn = $("btn-file-pause");
+  btn.textContent = T.filePaused ? "继续" : "暂停";
+  btn.classList.toggle("active", T.filePaused);
+  if (T.filePaused) {
+    if (T.fileTimer) { clearTimeout(T.fileTimer); T.fileTimer = null; }
+    wsEvt("文件推流已暂停");
+  } else {
+    wsEvt("文件推流继续");
+    pumpFile();
+  }
+}
+
+function toggleMicPause() {
+  if (T.state !== "streaming" || T.mode !== "mic") return;
+  T.micPaused = !T.micPaused;
+  var btn = $("btn-mic-pause");
+  btn.textContent = T.micPaused ? "继续收音" : "暂停收音";
+  btn.classList.toggle("active", T.micPaused);
+  wsEvt(T.micPaused ? "麦克风已暂停（静音，不发送）" : "麦克风继续");
+}
+
+/* ---------- 麦克风 ---------- */
+
+function startMicCapture() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    wsEvt("当前环境不支持麦克风采集 (需要 localhost / HTTPS)", true);
+    setState("error");
+    return;
+  }
+  setState("preparing");
+  navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+  }).then(function (stream) {
+    T.micStream = stream;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    T.micCtx = new AC();
+    T.micSource = T.micCtx.createMediaStreamSource(stream);
+    T.micProc = T.micCtx.createScriptProcessor(4096, 1, 1);
+    T.micSentMs = 0;
+    T.micProc.onaudioprocess = function (e) {
+      var f32 = e.inputBuffer.getChannelData(0);
+      // 电平表
+      var sum = 0;
+      for (var i = 0; i < f32.length; i++) sum += f32[i] * f32[i];
+      var rms = Math.sqrt(sum / f32.length);
+      T.meterAvg = T.meterAvg * 0.7 + rms * 0.3;
+      $("mic-meter").style.width = Math.min(100, T.meterAvg * 350).toFixed(0) + "%";
+      // 推流（暂停时保持采集与电平显示，但不发送）
+      if (T.state === "streaming" && !T.micPaused) {
+        var ds = downsampleTo16k(f32, T.micCtx.sampleRate);
+        sendAudio(floatToInt16(ds));
+        T.micSentMs += ds.length / 16;
+        $("mic-sent").textContent = "已发送 " + (T.micSentMs / 1000).toFixed(1) + "s 音频";
+      } else if (T.micPaused) {
+        $("mic-sent").textContent = "已暂停 · 已发送 " + (T.micSentMs / 1000).toFixed(1) + "s 音频";
+      }
+    };
+    T.micSource.connect(T.micProc);
+    T.micProc.connect(T.micCtx.destination); // ScriptProcessor 需接入 destination 才运转
+    // 采集就绪后再连会话, session_ready 后开始发送
+    connectSession("mic");
+  }).catch(function (err) {
+    wsEvt("麦克风授权失败: " + (err && err.name || err), true);
+    setState("error");
+  });
+}
+
+function startMicSending() {
+  setState("streaming");
+  if (T.micCtx && T.micCtx.state === "suspended") T.micCtx.resume();
+}
+
+/* ---------- 会话控制 ---------- */
+
+function requestStop() {
+  if (!T.ws || T.ws.readyState !== 1) return;
+  if (T.state === "stopping" || T.state === "finished") return;
+  setState("stopping");
+  cleanupAudio();
+  T.ws.send(JSON.stringify({ type: "stop" }));
+  // 兜底: 8s 内未收到 session_finished 则强制关闭
+  setTimeout(function () {
+    if (T.state === "stopping" && T.ws) {
+      wsEvt("等待 session_finished 超时, 强制关闭", true);
+      try { T.ws.close(); } catch (e) {}
+      setState("error");
+    }
+  }, 8000);
+}
+
+function cleanupAudio() {
+  if (T.fileTimer) { clearTimeout(T.fileTimer); T.fileTimer = null; }
+  if (T.micProc) {
+    try { T.micProc.disconnect(); } catch (e) {}
+    T.micProc.onaudioprocess = null;
+    T.micProc = null;
+  }
+  if (T.micSource) { try { T.micSource.disconnect(); } catch (e) {} T.micSource = null; }
+  if (T.micStream) { T.micStream.getTracks().forEach(function (t) { t.stop(); }); T.micStream = null; }
+  if (T.micCtx) { try { T.micCtx.close(); } catch (e) {} T.micCtx = null; }
+  $("mic-meter").style.width = "0%";
+}
+
+/* ---------- 转写渲染 ---------- */
+
+function renderPartial(text) {
+  var el = $("live-partial");
+  if (!text) { el.style.display = "none"; el.textContent = ""; return; }
+  el.style.display = "block";
+  el.textContent = "▶ " + text;
+}
+
+function upsertSentence(d, isFinal) {
+  var id = d.sentence_id;
+  var rec = T.rows[id];
+  if (!rec) {
+    var el = document.createElement("div");
+    el.className = "sent prov";
+    el.innerHTML = '<span class="ts"></span><span class="spk"></span><span class="txt"></span>';
+    rec = T.rows[id] = { el: el, final: false, fallback: false, text: "", speaker: null };
+    $("transcript").appendChild(el);
+    $("empty-transcript").style.display = "none";
+  }
+  if (!isFinal) {
+    rec.text = d.text || "";
+    rec.el.className = "sent prov";
+    rec.el.querySelector(".ts").textContent = fmtTs(d.start_ms);
+    rec.el.querySelector(".txt").textContent = rec.text;
+  } else {
+    rec.final = true;
+    rec.fallback = d.final_source && d.final_source !== "qwen3-asr";
+    rec.text = d.text || "";
+    rec.speaker = d.speaker;
+    rec.el.className = "sent final" + (rec.fallback ? " fallback" : "") + (rec.text ? "" : " empty-final");
+    rec.el.querySelector(".ts").textContent = fmtTs(d.start_ms);
+    rec.el.querySelector(".spk").textContent = d.speaker ? (d.speaker + " │") : "";
+    rec.el.querySelector(".txt").textContent = rec.text || "(空)";
+    // 标记
+    var old = rec.el.querySelector(".mark");
+    if (old) old.remove();
+    if (rec.fallback || d.needs_review) {
+      var mark = document.createElement("span");
+      mark.className = "mark" + (rec.fallback ? "" : " review");
+      mark.textContent = (rec.fallback ? "[首遍回退]" : "") + (d.needs_review ? " ✱复核" : "");
+      rec.el.appendChild(mark);
+    }
+  }
+}
+
+function copyTranscript() {
+  var lines = [];
+  Object.keys(T.rows).map(Number).sort(function (a, b) { return a - b; }).forEach(function (id) {
+    var r = T.rows[id];
+    if (!r.final) return;
+    var ts = r.el.querySelector(".ts").textContent;
+    var spk = r.speaker ? r.speaker + " " : "";
+    lines.push("[" + ts + "] " + spk + r.text);
+  });
+  if (!lines.length) return;
+  var text = lines.join("\n");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { flashCopyBtn("已复制 " + lines.length + " 句"); },
+                                             function () { flashCopyBtn("复制失败"); });
+  } else {
+    flashCopyBtn("浏览器不支持剪贴板");
+  }
+}
+
+function flashCopyBtn(msg) {
+  var b = $("btn-copy");
+  var orig = b.textContent;
+  b.textContent = msg;
+  setTimeout(function () { b.textContent = orig; }, 1500);
+}
+
+function clearTranscript() {
+  if (T.state === "streaming") return;
+  T.rows = {};
+  T.nPartial = T.nProv = T.nFinal = T.nFallback = T.nReview = 0;
+  $("chip-partial").textContent = "0";
+  $("chip-final").textContent = "0";
+  $("chip-fallback").textContent = "0";
+  $("chip-review").textContent = "0";
+  $("transcript").innerHTML = "";
+  $("live-partial").style.display = "none";
+  $("empty-transcript").style.display = "block";
+  $("session-summary").style.display = "none";
+}
+
+/* ---------- 事件绑定 ---------- */
+
+$("file-input").addEventListener("change", function () {
+  var f = this.files && this.files[0];
+  if (f) loadAudioFile(f);
+});
+
+$("btn-file-start").addEventListener("click", function () {
+  if (!T.filePCM) return;
+  T.finishedAt = null;
+  connectSession("file");
+});
+
+$("btn-mic-start").addEventListener("click", function () {
+  T.finishedAt = null;
+  startMicCapture();
+});
+
+$("btn-file-pause").addEventListener("click", toggleFilePause);
+$("btn-mic-pause").addEventListener("click", toggleMicPause);
+
+$("btn-stop").addEventListener("click", requestStop);
+
+$("btn-commit").addEventListener("click", function () {
+  if (T.ws && T.ws.readyState === 1 && T.state === "streaming") {
+    T.ws.send(JSON.stringify({ type: "commit" }));
+  }
+});
+
+$("btn-copy").addEventListener("click", copyTranscript);
+$("btn-clear").addEventListener("click", clearTranscript);
+
+/* ---------- WS 帧监控控制 ---------- */
+
+$("ws-toggle").addEventListener("click", function () {
+  var box = $("ws-collapsible");
+  var isHidden = box.style.display === "none";
+  box.style.display = isHidden ? "block" : "none";
+  this.textContent = isHidden ? "收起" : "展开";
+  if (isHidden) wsRender();
+});
+
+$("ws-fdir").addEventListener("change", wsRender);
+$("ws-fkind").addEventListener("change", wsRender);
+var wsFqTimer = null;
+$("ws-fq").addEventListener("input", function () {
+  clearTimeout(wsFqTimer);
+  wsFqTimer = setTimeout(wsRender, 200);
+});
+
+$("ws-btn-pause").addEventListener("click", function () {
+  WSMon.paused = !WSMon.paused;
+  this.textContent = WSMon.paused ? "恢复显示" : "暂停显示";
+  this.classList.toggle("active", WSMon.paused);
+  if (!WSMon.paused) wsRender();
+  wsUpdateStats();
+});
+
+$("ws-btn-copy").addEventListener("click", function () {
+  var text = wsEntriesToText(wsVisibleEntries());
+  if (!text) return;
+  var btn = this;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      function () { btn.textContent = "已复制"; setTimeout(function () { btn.textContent = "复制"; }, 1200); },
+      function () { btn.textContent = "复制失败"; setTimeout(function () { btn.textContent = "复制"; }, 1200); }
+    );
+  } else {
+    btn.textContent = "浏览器不支持剪贴板";
+    setTimeout(function () { btn.textContent = "复制"; }, 1500);
+  }
+});
+
+$("ws-btn-save").addEventListener("click", function () {
+  var text = wsEntriesToText(wsVisibleEntries());
+  if (!text) return;
+  var blob = new Blob([text], { type: "text/plain" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "asrflow-ws-" + (T.sessionId || "log") + ".txt";
+  if (document.body) document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+});
+
+$("ws-btn-clear").addEventListener("click", function () {
+  WSMon.entries = [];
+  WSMon.stats = { upText: 0, upBin: 0, upBytes: 0, downText: 0, downBin: 0, downBytes: 0 };
+  $("ws-log").innerHTML = "";
+  wsUpdateStats();
+});
+
+setState("idle");
+
+// 从 /ready 推导默认 WS 地址 (用户手动修改过则不覆盖)
+fetchJSON("/ready").then(function (rd) {
+  if (!rd || !rd.ws_port) return;
+  if (window.__wsTouched) return;
+  var scheme = location.protocol === "https:" ? "wss://" : "ws://";
+  $("ws-url").value = scheme + location.hostname + ":" + rd.ws_port;
+}).catch(function () {});
+$("ws-url").addEventListener("input", function () { window.__wsTouched = true; });
+
+/* ================================================================
+ * Tab 2: 指标监控
+ * ================================================================ */
+
+var CARD_DEFS = [
+  { key: "asr_online_sessions",         label: "在线会话",   hint: "当前 WebSocket 连接" },
+  { key: "asr_active_speech_sessions",  label: "语音进行中", hint: "正在说话的会话" },
+  { key: "asr_qwen_queue_size",         label: "二遍队列",   hint: "等待 Qwen 定稿的任务" },
+  { key: "asr_total_sessions",          label: "累计会话",   hint: "自启动以来接入总数" },
+  { key: "asr_sentences_finalized",     label: "已定稿句子", hint: "", derived: reviewRate },
+  { key: "asr_sentences_needs_review",  label: "待复核句子", hint: "两遍结果差异较大" },
+  { key: "asr_qwen_timeout_total",      label: "二遍超时",   hint: "Qwen 调用超时次数" },
+  { key: "asr_qwen_fallback_total",     label: "首遍回退",   hint: "二遍失败回退首遍" },
+  { key: "asr_websocket_errors",        label: "连接错误",   hint: "WebSocket 异常关闭" }
+];
+
+var SUMMARY_DEFS = {
+  "asr_paraformer_latency_ms":  { label: "首遍推理延迟",   unit: "ms" },
+  "asr_vad_latency_ms":         { label: "VAD 处理延迟",  unit: "ms" },
+  "asr_qwen_queue_wait_ms":     { label: "二遍排队等待",   unit: "ms" },
+  "asr_qwen_inference_ms":      { label: "二遍推理延迟",   unit: "ms" },
+  "asr_speaker_embedding_ms":   { label: "说话人特征提取", unit: "ms" },
+  "asr_qwen_batch_size":        { label: "二遍批大小",     unit: "" },
+  "asr_revision_distance":      { label: "文本修订距离",   unit: "" }
+};
+
+var SPARK_POINTS = 120;
+var sparkHistory = [];
+
+function parsePromText(text) {
+  var out = {};
+  text.split("\n").forEach(function (line) {
+    line = line.trim();
+    if (!line || line.charAt(0) === "#") return;
+    var m = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{[^}]*\})?\s+(-?[0-9.eE+]+)$/);
+    if (!m) return;
+    var v = parseFloat(m[3]);
+    if (!isNaN(v)) out[m[1] + (m[2] || "")] = v;
+  });
+  return out;
+}
+
+function extractSummaries(data) {
+  var summaries = [];
+  Object.keys(data).forEach(function (key) {
+    if (key.indexOf("{") !== -1) return;
+    var m = key.match(/^(.+)_count$/);
+    if (!m) return;
+    var name = m[1];
+    var count = data[key];
+    if (count <= 0) {
+      summaries.push({ name: name, count: 0 });
+      return;
+    }
+    var sum = data[name + "_sum"] || 0;
+    summaries.push({
+      name: name,
+      count: count,
+      sum: sum,
+      p50: data[name + '{quantile="0.50"}'],
+      p90: data[name + '{quantile="0.90"}'],
+      p95: data[name + '{quantile="0.95"}'],
+      p99: data[name + '{quantile="0.99"}']
+    });
+  });
+  return summaries;
+}
+
+function reviewRate(data) {
+  var finalized = data["asr_sentences_finalized"];
+  var review = data["asr_sentences_needs_review"];
+  if (!finalized) return null;
+  return "复核率 " + fmtFloat((review || 0) / finalized * 100, 1) + "%";
+}
+
+function renderCards(data) {
+  var html = CARD_DEFS.map(function (def) {
+    var raw = data[def.key];
+    var has = raw !== undefined;
+    var cls = "";
+    if (has && raw > 0 && def.key.indexOf("error") !== -1) cls = "bad";
+    if (has && raw > 0 && (def.key.indexOf("timeout") !== -1 || def.key.indexOf("fallback") !== -1)) cls = "warn";
+    var hint = def.hint || "";
+    if (def.derived) {
+      var extra = def.derived(data);
+      if (extra) hint = (hint ? hint + " · " : "") + extra;
+    }
+    return '<div class="card">' +
+      '<div class="label">' + esc(def.label) + "</div>" +
+      '<div class="value ' + cls + '">' + (has ? fmtInt(raw) : "--") + "</div>" +
+      '<div class="hint">' + esc(hint) + "</div>" +
+      "</div>";
+  }).join("");
+  $("cards").innerHTML = html;
+}
+
+function renderRuntime(ready, healthz) {
+  var rows = [];
+  if (ready) {
+    rows.push(["服务状态", ready.ready ? '<span class="badge ok">就绪</span>'
+                                        : '<span class="badge warn">未就绪</span>']);
+    rows.push(["流式首遍 (Pass-1)", esc(ready.streaming_asr || "--")]);
+    rows.push(["VAD 分段", esc(ready.vad || "--")]);
+    rows.push(["二遍定稿 (Pass-2)", esc(ready.final_asr || "--")]);
+  }
+  if (healthz) {
+    rows.push(["运行时长", fmtDuration(healthz.uptime_seconds)]);
+    rows.push(["在线会话数", fmtInt(healthz.active_sessions)]);
+  }
+  $("runtime").innerHTML = rows.map(function (r) {
+    return '<div class="kv"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + "</span></div>";
+  }).join("");
+}
+
+function renderLatency(summaries) {
+  var body = $("latency-body");
+  if (!summaries.length) {
+    body.innerHTML = '<tr><td class="empty" colspan="7">暂无数据</td></tr>';
+    return;
+  }
+  var known = Object.keys(SUMMARY_DEFS).filter(function (name) {
+    return summaries.some(function (s) { return s.name === name; });
+  });
+  var unknown = summaries.map(function (s) { return s.name; }).filter(function (name) {
+    return !SUMMARY_DEFS[name];
+  }).sort();
+  var ordered = known.concat(unknown);
+
+  body.innerHTML = ordered.map(function (name) {
+    var def = SUMMARY_DEFS[name] || { label: name, unit: "" };
+    var s = summaries.find(function (x) { return x.name === name; });
+    if (!s.count) {
+      return "<tr><td>" + esc(def.label) + '</td><td class="num muted" colspan="6">暂无样本</td></tr>';
+    }
+    var unit = def.unit ? " " + def.unit : "";
+    function cell(v) { return '<td class="num">' + fmtFloat(v, 1) + unit + "</td>"; }
+    return "<tr><td>" + esc(def.label) + "</td>" +
+      '<td class="num">' + fmtInt(s.count) + "</td>" +
+      cell(s.sum / s.count) + cell(s.p50) + cell(s.p90) + cell(s.p95) + cell(s.p99) +
+      "</tr>";
+  }).join("");
+}
+
+function renderSessions(payload) {
+  var body = $("session-body");
+  var sessions = (payload && payload.sessions) || [];
+  $("session-hint").textContent = "来源 GET /api/v1/sessions · 共 " + sessions.length + " 个";
+  if (!sessions.length) {
+    body.innerHTML = '<tr><td class="empty" colspan="5">暂无活跃会话</td></tr>';
+    return;
+  }
+  body.innerHTML = sessions.map(function (s) {
+    var state;
+    if (s.detached) {
+      state = '<span class="badge warn">已断开 · 待恢复</span>';
+    } else if (s.is_in_speech) {
+      state = '<span class="badge ok">说话中</span>';
+    } else {
+      state = '<span class="badge grey">在线</span>';
+    }
+    var sid = String(s.session_id || "");
+    var created = s.created_at ? new Date(s.created_at * 1000).toLocaleTimeString("zh-CN", { hour12: false }) : "--";
+    return "<tr>" +
+      '<td title="' + esc(sid) + '">' + esc(sid.slice(0, 8)) + (sid.length > 8 ? "…" : "") + "</td>" +
+      '<td class="muted">' + created + "</td>" +
+      '<td class="num">' + fmtDuration(s.idle_seconds) + "</td>" +
+      '<td class="num">' + fmtInt(s.sentence_count) + "</td>" +
+      "<td>" + state + "</td>" +
+      "</tr>";
+  }).join("");
+}
+
+function drawSpark() {
+  var canvas = $("spark");
+  var w = canvas.width, h = canvas.height;
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, w, h);
+  if (sparkHistory.length < 2) return;
+
+  var maxV = Math.max.apply(null, sparkHistory.concat([1]));
+  var n = sparkHistory.length;
+  var x = function (i) { return (i / (n - 1)) * (w - 2) + 1; };
+  var y = function (v) { return h - 3 - (v / maxV) * (h - 6); };
+
+  ctx.beginPath();
+  ctx.moveTo(x(0), h);
+  for (var i = 0; i < n; i++) ctx.lineTo(x(i), y(sparkHistory[i]));
+  ctx.lineTo(x(n - 1), h);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(56,189,248,0.15)";
+  ctx.fill();
+
+  ctx.beginPath();
+  for (var j = 0; j < n; j++) {
+    if (j === 0) ctx.moveTo(x(j), y(sparkHistory[j]));
+    else ctx.lineTo(x(j), y(sparkHistory[j]));
+  }
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
+
+function setMetricStatus(ok, text) {
+  $("svc-dot").className = "dot" + (ok ? " ok" : " fail");
+  $("metric-status-text").textContent = text;
+}
+
+var metricsPaused = false;
+var metricsTimer = null;
+
+function refreshMetrics() {
+  var jobs = [
+    fetchText("/metrics").then(parsePromText),
+    fetchJSON("/ready"),
+    fetchJSON("/healthz"),
+    fetchJSON("/api/v1/sessions")
+  ];
+  return Promise.all(jobs.map(function (p) { return p.catch(function () { return null; }); }))
+    .then(function (results) {
+      var data = results[0], ready = results[1], healthz = results[2], sessions = results[3];
+      var anyOk = [data, ready, healthz, sessions].some(function (r) { return r !== null; });
+
+      if (!anyOk) {
+        setMetricStatus(false, "连接失败");
+        $("updated").textContent = "重试中…";
+        return;
+      }
+      setMetricStatus(true, "正常");
+      $("updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+
+      if (healthz) $("uptime").textContent = fmtDuration(healthz.uptime_seconds);
+      if (data) {
+        renderCards(data);
+        sparkHistory.push(data["asr_online_sessions"] || 0);
+        if (sparkHistory.length > SPARK_POINTS) sparkHistory.shift();
+        drawSpark();
+        renderLatency(extractSummaries(data));
+      }
+      renderRuntime(ready, healthz);
+      renderSessions(sessions);
+    });
+}
+
+function scheduleMetrics() {
+  clearTimeout(metricsTimer);
+  if (metricsPaused) return;
+  var ms = parseInt($("interval").value, 10) || 5000;
+  metricsTimer = setTimeout(function () {
+    refreshMetrics().then(scheduleMetrics).catch(scheduleMetrics);
+  }, ms);
+}
+
+$("interval").addEventListener("change", function () {
+  clearTimeout(metricsTimer);
+  refreshMetrics().then(scheduleMetrics).catch(scheduleMetrics);
+});
+
+$("pause").addEventListener("click", function () {
+  metricsPaused = !metricsPaused;
+  this.textContent = metricsPaused ? "恢复" : "暂停";
+  this.classList.toggle("active", metricsPaused);
+  if (metricsPaused) {
+    clearTimeout(metricsTimer);
+    $("updated").textContent = "已暂停";
+  } else {
+    refreshMetrics().then(scheduleMetrics).catch(scheduleMetrics);
+  }
+});
+
+refreshMetrics().then(scheduleMetrics).catch(scheduleMetrics);
+</script>
+</body>
+</html>
