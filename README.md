@@ -33,7 +33,7 @@ ASRFlow 是一个异构两阶段（2-Pass）实时语音识别网关。客户端
 - **分层流式防退化检查**：
   - **L0**：非语音态下对近零静音（<-80 dBFS）过滤偶发 Token（[`core/audio_energy.py`](core/audio_energy.py)）；
   - **L1**：VAD 未起段时抑制 Partial 发送并锁存起始时间戳，防止时间轴漂移（[`pipeline/session_pipeline.py`](pipeline/session_pipeline.py)）；
-  - **L2**：非语音累积超时看门狗切段送二遍裁决，配合 Consistency Guard 校验防幻觉（详见 [流式输出退化分层防护设计](docs/design_degenerate_rows_guard_2026-09-18.md)）。
+  - **L2**：非语音累积超时看门狗切段送二遍裁决，配合 Consistency Guard 标记可疑结果（`needs_review`，仍保留二遍文本；回退首遍仅限二遍超时/失败，详见 [流式输出退化分层防护设计](docs/design_degenerate_rows_guard_2026-09-18.md)）。
 - **架构解耦设计**：二遍模型通过 HTTP 接口调用独立部署的 vLLM 进程，网关依赖轻量（vLLM 不进服务依赖）。
 - **会话管理与掉线恢复**：支持基于 `session_id` 的客户端断线重连与状态恢复（`resume` 会话缓存机制）；支持客户端主动发送 `commit` 信令强制切句。
 - **辅助能力与服务发现**：支持动态热词（Hotwords）偏置、说话人识别与聚类（CAM++ / ERes2NetV2）、逆文本正则化（ITN）；支持可选的 Nacos 实例自动注册与心跳保活。

@@ -280,9 +280,18 @@ VAD 检测到句尾（或 commit / 强制切分）时下发：
 }
 ```
 
-- `final_source="paraformer-fallback"`：二遍**明确超时/失败/不可用**（含二遍待处理队列溢出，上限 `final_asr.max_queue_size` 默认 64），或 Guard 判定幻觉类异常（语速超标、超短音频出长文本、重复环、异常插入），回退首遍文本，此时 `text` 精度略低但仍可用。出现该值即说明二遍链路存在问题或积压，值得排查。
-- `text=""` 且 `final_source="qwen3-asr"`：二遍成功响应但判定该段**无有效语音**（常见于极短的语气词/噪声段），空文本即为权威结果，客户端应原样落稿而非回退首遍。
-- `needs_review=true`：结果已采用但置信度存疑（如两遍差异大），可按业务决定是否标记。
+- `final_source="qwen3-asr"`：二遍成功返回（含空文本）。Consistency Guard **不会**因幻觉类异常改写 `final_source` 或换成首遍文本；异常时仍保留 Qwen 文本并置 `needs_review=true`（首遍质量显著差于二遍，换文几乎总是更差）。
+- `final_source="paraformer-fallback"`：仅当二遍**明确超时 / 失败 / 不可用**（含待处理队列溢出，上限 `final_asr.max_queue_size` 默认 64）时，流水线例外路径回退首遍 provisional 文本。出现该值说明二遍链路有问题或积压，值得排查。**不是** Guard 幻觉判定的结果。
+- `text=""` 且 `final_source="qwen3-asr"`：二遍成功响应但判定该段**无有效语音**（常见于极短语气词/噪声段），空文本即为权威结果，客户端应原样落稿而非回退首遍。
+- `needs_review=true`：Guard 标记可疑（两遍编辑距离过大、语速超标、超短音频出长文本、重复环、异常插入等），**文本仍为 Qwen 定稿**；可按业务决定是否人工复核或后处理。
+
+简表：
+
+| 条件 | `final_source` | `needs_review` | `text` 来源 |
+| :--- | :--- | :--- | :--- |
+| 二遍成功且 Guard 通过 | `qwen3-asr` | `false` | Qwen |
+| 二遍成功但 Guard 异常 | `qwen3-asr` | `true` | Qwen（保留） |
+| 二遍超时/失败/队列溢出 | `paraformer-fallback` | `false` | 首遍 provisional |
 
 ### 4.5 session_finished —— 会话结束汇总
 
