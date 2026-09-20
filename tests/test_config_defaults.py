@@ -14,6 +14,11 @@ class TestDefaultConfig(unittest.TestCase):
         self.assertEqual(cfg.final_asr.max_concurrency, 32)
         self.assertEqual(cfg.final_asr.max_tokens, 512)
         self.assertEqual(cfg.final_asr.context_history_chars, 200)
+        self.assertEqual(
+            cfg.final_asr.vllm_url,
+            "http://127.0.0.1:8899/v1/audio/transcriptions",
+        )
+        self.assertEqual(cfg.final_asr.model_name, "qwen3-asr")
         self.assertEqual(cfg.server.max_connections, 100)
         self.assertEqual(cfg.server.max_audio_frame_ms, 2000)
         self.assertTrue(cfg.admission.enable)
@@ -39,7 +44,18 @@ class TestDefaultConfig(unittest.TestCase):
         self.assertEqual(cfg.pool.worker_threads, 7)
 
 
+    def test_final_asr_dataclass_defaults_align_readme(self):
+        from config.settings import FinalASRConfig
+
+        cfg = FinalASRConfig()
+        self.assertEqual(
+            cfg.vllm_url, "http://127.0.0.1:8899/v1/audio/transcriptions"
+        )
+        self.assertEqual(cfg.model_name, "qwen3-asr")
+
+
 class TestTuningEnvOverrides(unittest.TestCase):
+
     """New tuning knobs must be reachable from the environment (compose)."""
 
     _VARS = (

@@ -97,7 +97,7 @@ services:
       - STREAMING_ONNX_THREADS=${STREAMING_ONNX_THREADS:-} # ORT intra-op 线程数, 留空 = 全部核
       # ---- 二遍 vLLM (Qwen3-ASR, 独立部署) ----
       - VLLM_URL=${VLLM_URL:-http://host.docker.internal:8899/v1/audio/transcriptions}
-      - FINAL_ASR_MODEL=${FINAL_ASR_MODEL:-qwen3-asr-1.7b} # 须与 vLLM --served-model-name 一致
+      - FINAL_ASR_MODEL=${FINAL_ASR_MODEL:-qwen3-asr} # 须与 vLLM --served-model-name 一致
       - FINAL_TIMEOUT_SEC=${FINAL_TIMEOUT_SEC:-8}        # 二遍单句硬超时(s)
       - FINAL_MAX_CONCURRENCY=${FINAL_MAX_CONCURRENCY:-32} # 二遍并发上限(按句计)
       - FINAL_MAX_TOKENS=${FINAL_MAX_TOKENS:-512}        # 二遍单句生成 token 上限

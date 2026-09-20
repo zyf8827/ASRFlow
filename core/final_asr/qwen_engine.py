@@ -77,9 +77,9 @@ class Qwen3ASREngine(BaseFinalASREngine):
         url = self.config.vllm_url.rstrip("/")
         if not url.endswith("/v1/chat/completions") and not url.endswith("/v1/audio/transcriptions"):
             if "/v1" in url:
-                url = f"{url}/chat/completions"
+                url = f"{url}/audio/transcriptions"
             else:
-                url = f"{url}/v1/chat/completions"
+                url = f"{url}/v1/audio/transcriptions"
         self._endpoint_url = url
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -188,7 +188,7 @@ class Qwen3ASREngine(BaseFinalASREngine):
                     raw_text = result_json.get("text", "")
                     return clean_qwen_asr_text(raw_text)
             else:
-                # JSON /v1/chat/completions API (Default vLLM online serving)
+                # JSON /v1/chat/completions API (also supported)
                 wav_b64 = base64.b64encode(wav_data).decode("utf-8")
                 payload = self._build_chat_payload(wav_b64, context=context, hotwords=hotwords)
 

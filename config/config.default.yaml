@@ -66,7 +66,7 @@ vad:
 
 final_asr:
   engine_type: "vllm_http"       # vllm_http | openai_api | mock (env FINAL_ASR_BACKEND / CLI --final_backend)
-  vllm_url: "http://127.0.0.1:8000/v1/chat/completions" # 二遍 vLLM 地址, 兼容 /v1/audio/transcriptions 端点 (env VLLM_URL / CLI --vllm_url)
+  vllm_url: "http://127.0.0.1:8899/v1/audio/transcriptions" # 二遍 vLLM 地址 (默认 transcriptions; 亦支持 /v1/chat/completions) (env VLLM_URL / CLI --vllm_url)
   model_name: "qwen3-asr"        # 须与 vLLM 侧 --served-model-name 一致 (env FINAL_ASR_MODEL / CLI --final_model)
   api_key: "EMPTY"               # Bearer 鉴权头, vLLM 一般填 EMPTY
   hard_timeout_sec: 8.0          # 二遍单句硬超时(s), 超时/失败回退首遍结果; 压测全表最大延迟 442ms(32并发/10s段), 8s≈18x余量, 2.5s 会让 30s force-cut 长句系统性回退 (env FINAL_TIMEOUT_SEC)

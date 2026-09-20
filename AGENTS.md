@@ -19,7 +19,7 @@
 
 ## 关键约束
 
-- **vllm 永远不进依赖**：Qwen3-ASR 由独立 vLLM Online Serving 进程部署，本服务仅通过 HTTP（`--vllm_url` / `VLLM_URL`）调用。requirements.txt 有意精简。URL 需以 `/v1/chat/completions` 或 `/v1/audio/transcriptions` 结尾，裸地址会按后缀自动补全（见 `core/final_asr/qwen_engine.py`）。
+- **vllm 永远不进依赖**：Qwen3-ASR 由独立 vLLM Online Serving 进程部署，本服务仅通过 HTTP（`--vllm_url` / `VLLM_URL`）调用。requirements.txt 有意精简。URL 需以 `/v1/audio/transcriptions` 或 `/v1/chat/completions` 结尾；裸地址默认补全为 `/v1/audio/transcriptions`（见 `core/final_asr/qwen_engine.py`）。默认 `VLLM_URL` 为 `http://127.0.0.1:8899/v1/audio/transcriptions`，模型名 `qwen3-asr`。
 - 所有导入以仓库根为顶层包（如 `from core.session import ...`），项目未安装为包——任何脚本/测试都必须在根目录下执行或带 `PYTHONPATH=.`。
 
 ## 架构要点

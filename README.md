@@ -37,7 +37,7 @@ ASRFlow 是一个异构两阶段（2-Pass）实时语音识别网关。客户端
 - **架构解耦设计**：二遍模型通过 HTTP 接口调用独立部署的 vLLM 进程，网关依赖轻量（vLLM 不进服务依赖）。
 - **会话管理与掉线恢复**：支持基于 `session_id` 的客户端断线重连与状态恢复（`resume` 会话缓存机制）；支持客户端主动发送 `commit` 信令强制切句。
 - **辅助能力与服务发现**：支持动态热词（Hotwords）偏置、说话人识别与聚类（CAM++ / ERes2NetV2）、逆文本正则化（ITN）；支持可选的 Nacos 实例自动注册与心跳保活。
-- **服务观测与健康检查**：内置 HTTP `/healthz`、`/ready` 健康探针与 Prometheus `/metrics` 指标。
+- **服务观测与健康检查**：内置 HTTP `/healthz`、`/ready` 健康探针、Prometheus `/metrics`，以及 `/` / `/dashboard` 运维面板（含音频文件推流试听）。
 
 ---
 
@@ -95,6 +95,8 @@ python3 main.py \
   --final_backend vllm_http
 ```
 
+浏览器打开内置 Dashboard（`http://127.0.0.1:10096/` 或 `/dashboard`）即可试用：**「音频文件推流」**已支持本地选文件、浏览器内解码并重采样为 PCM16/16kHz、倍速/暂停/进度条、推完自动 STOP；亦支持麦克风采集与实时转写展示（`server/static/dashboard.html`，无需另建 Demo）。
+
 在另一个终端使用内置控制台客户端推流测试：
 
 ```bash
@@ -130,7 +132,7 @@ docker compose -f deployment/docker-compose.yaml up -d
 ### 1. 连接端点与音频规格
 
 - **WebSocket 服务**：`ws://<host>:10095`（音频流与信令同连接，按帧类型严格区分）
-- **HTTP 运维端口**：`http://<host>:10096`（`/healthz`、`/ready`、`/metrics`）
+- **HTTP 运维端口**：`http://<host>:10096`（`/` / `/dashboard` 内置面板、`/healthz`、`/ready`、`/metrics`）
 - **音频格式要求**：
   - 编码：**PCM16**（有符号 16 位小端原始字节，无 WAV 头）
   - 采样率：**16000 Hz**，**单声道**
@@ -171,7 +173,7 @@ docker compose -f deployment/docker-compose.yaml up -d
 | `server.port` | `ASR_SERVER_PORT` | `10095` | WebSocket 网关监听端口 |
 | `server.http_port` | `ASR_HTTP_PORT` | `10096` | 运维 HTTP 端口（`/healthz`、`/ready`、`/metrics`） |
 | `final_asr.vllm_url` | `VLLM_URL` | `http://127.0.0.1:8899/v1/audio/transcriptions` | 独立 Qwen3-ASR 在线服务地址 |
-| `final_asr.model_name` | `FINAL_ASR_MODEL` | `qwen3-asr-1.7b` | 二遍模型名称（需对齐 vLLM `--served-model-name`） |
+| `final_asr.model_name` | `FINAL_ASR_MODEL` | `qwen3-asr` | 二遍模型名称（需对齐 vLLM `--served-model-name`） |
 | `streaming_asr.backend` | `STREAMING_BACKEND` | `auto` | 首遍引擎：`onnx`、`mock` 或 `auto` |
 | `streaming_asr.device` | `ASR_DEVICE` | `auto` | 首遍推理设备：可选 `cpu` 或 `cuda:0`（自动映射 ONNX Execution Provider） |
 | `voice.watchdog_enable` | `VOICE_WATCHDOG_ENABLE` | `true` | 是否启用超时看门狗分段防护 |

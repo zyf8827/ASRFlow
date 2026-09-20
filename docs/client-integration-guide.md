@@ -561,6 +561,7 @@ ws.on("message", (data) => {
 
 | 路径 | 说明 |
 | :--- | :--- |
+| `GET /` 或 `/dashboard` | 内置运维面板：含「音频文件推流」（浏览器解码重采样为 PCM16/16kHz、倍速/暂停/进度、自动 STOP）、麦克风采集与实时转写 |
 | `GET /healthz` | 进程存活 |
 | `GET /ready` | 模型全部加载完毕，可接客（**就绪探针用这个**） |
 | `GET /metrics` | Prometheus 指标（含 `asr_paraformer_latency_ms`、`asr_sentences_finalized` 等） |

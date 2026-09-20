@@ -11,7 +11,7 @@
 #
 # 与 asrflow 网关对接 (deployment/.env 或 init-compose.sh 交互项):
 #   VLLM_URL=http://<宿主IP>:8899/v1/audio/transcriptions   # 端口须与本文件 ports 一致
-#   FINAL_ASR_MODEL=qwen3-asr-1.7b                      # 须与下方 --served-model-name 一致
+#   FINAL_ASR_MODEL=qwen3-asr                           # 须与下方 --served-model-name 主名一致 (亦可用 qwen3-asr-1.7b)
 #
 # 模型不在线下载: 直接挂载宿主模型目录 (默认 /opt/models/qwen3-asr 或 Qwen3-ASR-1.7B 权重目录,
 # HuggingFace/ModelScope 仓库原样布局: config.json、*.safetensors、tokenizer 等)

@@ -162,7 +162,7 @@ class VADConfig:
 @dataclass
 class FinalASRConfig:
     engine_type: str = "vllm_http"  # vllm_http | openai_api | mock
-    vllm_url: str = "http://127.0.0.1:8000/v1/chat/completions"
+    vllm_url: str = "http://127.0.0.1:8899/v1/audio/transcriptions"
     model_name: str = "qwen3-asr"
     api_key: str = "EMPTY"
     # 二遍单句硬超时(s)。压测全表最大延迟 442ms (32 并发/10s 段), 8s 有 ~18x
