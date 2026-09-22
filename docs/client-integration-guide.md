@@ -427,10 +427,10 @@ VAD 检测到句尾（或 commit / 强制切分）时下发：
 热词**会话间完全隔离**，三种注入方式：
 
 1. **建会话时**：`start.hotwords`；
-2. **会话中随时**：Text 帧 `HOTWORDS:词1,词2`（整体替换）——对首遍 Paraformer 解码偏置与二遍 Qwen prompt **即时生效**；回包 `hotwords_set`；
+2. **会话中随时**：Text 帧 `HOTWORDS:词1,词2`（整体替换）——写入会话热词列表，**即时用于二遍 Qwen prompt**（最多取前 5 个）；回包 `hotwords_set`。**注意：当前首遍 ONNX Paraformer 路径不支持解码热词偏置**（`OnnxBatchedStreamingEngine` 忽略 `hotwords` 参数；`HotwordManager.format_paraformer_hotwords` 仅为接口预留），因此 Pass-1 `partial`/`provisional` **不会**因热词改变；
 3. **确定性后处理**：`POSTPROCESS_HOTWORDS:错=>对,别字=>正字`——不做解码偏置，在 final 文本上做精确替换，适合"稳定错一类"的纠正；回包 `postprocess_hotwords_set`。
 
-建议：专有名词（人名、地名、品牌名）用 hotwords；同音固定错字用 postprocess。热词数量建议 ≤ 20（二遍 prompt 仅取前 5 个）。
+建议：专有名词（人名、地名、品牌名）用 hotwords（主要提升二遍定稿）；同音固定错字用 postprocess。热词数量建议 ≤ 20（二遍 prompt 仅取前 5 个）。
 
 ---
 

@@ -6,7 +6,8 @@ from typing import List, Dict, Optional, Tuple
 class HotwordManager:
     """
     Manages session hotwords and domain terminology.
-    - Formats hotword lists for Paraformer streaming bias.
+    - format_paraformer_hotwords: cleans/dedupes the session list (API reserved;
+      current Pass-1 ONNX engine ignores hotwords — no decode bias).
     - Generates concise prompt hints for Qwen3-ASR without triggering hallucination.
     - Performs deterministic post-processing dictionary replacement (e.g. "wrong=>right" pairs).
     """
@@ -19,7 +20,7 @@ class HotwordManager:
             self.global_dictionary = dict(global_dictionary)
 
     def format_paraformer_hotwords(self, session_hotwords: List[str]) -> List[str]:
-        """Deduplicate and clean hotwords for Paraformer decoder bias."""
+        """Deduplicate and clean hotwords (Pass-1 ONNX currently ignores these)."""
         seen = set()
         cleaned = []
         for hw in session_hotwords:

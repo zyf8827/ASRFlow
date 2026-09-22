@@ -36,7 +36,7 @@ ASRFlow 是一个异构两阶段（2-Pass）实时语音识别网关。客户端
   - **L2**：非语音累积超时看门狗切段送二遍裁决，配合 Consistency Guard 标记可疑结果（`needs_review`，仍保留二遍文本；回退首遍仅限二遍超时/失败，详见 [流式输出退化分层防护设计](docs/design_degenerate_rows_guard_2026-09-18.md)）。
 - **架构解耦设计**：二遍模型通过 HTTP 接口调用独立部署的 vLLM 进程，网关依赖轻量（vLLM 不进服务依赖）。
 - **会话管理与掉线恢复**：支持基于 `session_id` 的客户端断线重连与状态恢复（`resume` 会话缓存机制）；支持客户端主动发送 `commit` 信令强制切句。
-- **辅助能力与服务发现**：支持动态热词（Hotwords）偏置、说话人识别与聚类（CAM++ / ERes2NetV2）、逆文本正则化（ITN）；支持可选的 Nacos 实例自动注册与心跳保活。
+- **辅助能力与服务发现**：支持动态热词（写入二遍 Qwen prompt + final 后处理替换；**当前首遍 ONNX 无解码热词偏置**）、说话人识别与聚类（CAM++ / ERes2NetV2）、逆文本正则化（ITN）；支持可选的 Nacos 实例自动注册与心跳保活。
 - **服务观测与健康检查**：内置 HTTP `/healthz`、`/ready` 健康探针、Prometheus `/metrics`，以及 `/` / `/dashboard` 运维面板（含音频文件推流试听）。
 
 ---
@@ -142,7 +142,7 @@ docker compose -f deployment/docker-compose.yaml up -d
 
 所有控制信令均为 JSON 格式的 Text 帧：
 
-- **`start`**：握手与会话初始化，可携带 `session_id`（用于断线重连）、`hotwords` 热词偏置列表、说话人识别开关等；
+- **`start`**：握手与会话初始化，可携带 `session_id`（用于断线重连）、`hotwords` 热词列表（主要作用于二遍 prompt / 后处理，首遍 ONNX 无解码偏置）、说话人识别开关等；
 - **`commit`**：客户端主动提交当前未成句音频（用于静音键按下、前端切句或人工截断）；
 - **`stop`**：音频推流完毕，等待所有句段最终定稿。
 
@@ -191,7 +191,7 @@ asrflow/
 │   ├── vad/           # VAD 引擎（FSMN-VAD）
 │   ├── speaker/       # 说话人识别与聚类（CAM++ / ERes2NetV2）
 │   ├── guard/         # 防退化与一致性校验守卫（ConsistencyGuard）
-│   ├── hotword/       # 动态热词偏置提取
+│   ├── hotword/       # 热词管理（二遍 prompt / 后处理；首遍 ONNX 无偏置）
 │   ├── itn/           # 逆文本正则化
 │   ├── session.py     # 会话状态机与上下文
 │   └── ring_buffer.py # 音频环形缓冲区
