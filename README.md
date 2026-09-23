@@ -118,7 +118,7 @@ bash deployment/init-compose.sh
 docker compose -f deployment/docker-compose.yaml up -d
 ```
 
-> **开发者测试**：代码仓库自带单元测试与 E2E 测试套件，使用进程内测试替身（fake / mock）验证协议与流水线逻辑（详见 [CONTRIBUTING.md](CONTRIBUTING.md)）：
+> **开发者测试**：代码仓库自带单元测试与 E2E 测试套件，使用**显式** `backend: mock` / `--*_backend mock` 进程内替身验证协议与流水线（详见 [CONTRIBUTING.md](CONTRIBUTING.md)）。产品默认 `auto` **不会**在缺依赖时静默落到 Mock（避免 `/ready` 假成功）：
 > ```bash
 > PYTHONPATH=. python3 -m unittest discover -s tests -v
 > ```
@@ -174,7 +174,7 @@ docker compose -f deployment/docker-compose.yaml up -d
 | `server.http_port` | `ASR_HTTP_PORT` | `10096` | 运维 HTTP 端口（`/healthz`、`/ready`、`/metrics`） |
 | `final_asr.vllm_url` | `VLLM_URL` | `http://127.0.0.1:8899/v1/audio/transcriptions` | 独立 Qwen3-ASR 在线服务地址 |
 | `final_asr.model_name` | `FINAL_ASR_MODEL` | `qwen3-asr` | 二遍模型名称（需对齐 vLLM `--served-model-name`） |
-| `streaming_asr.backend` | `STREAMING_BACKEND` | `auto` | 首遍引擎：`onnx`、`mock` 或 `auto` |
+| `streaming_asr.backend` | `STREAMING_BACKEND` | `auto` | 首遍引擎：`onnx` / `auto`（缺模型启动失败）或显式 `mock`（仅测试；**禁止** auto 静默 Mock） |
 | `streaming_asr.device` | `ASR_DEVICE` | `auto` | 首遍推理设备：可选 `cpu` 或 `cuda:0`（自动映射 ONNX Execution Provider） |
 | `voice.watchdog_enable` | `VOICE_WATCHDOG_ENABLE` | `true` | 是否启用超时看门狗分段防护 |
 | `server.resume_ttl_sec` | `RESUME_TTL_SEC` | `60.0` | 掉线会话保留时长（秒，0 表示禁用） |

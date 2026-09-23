@@ -24,7 +24,7 @@
 
 ## 架构要点
 
-- 引擎工厂模式：每个组件 `core/<组件>/__init__.py` 提供 `create_*_engine(config)` 按 backend 字符串分发；新增后端需实现同目录 `base.py` 接口并在工厂注册。`backend="auto"` 时真实引擎不可用会静默回退到 Mock（显式指定则抛错）。
+- 引擎工厂模式：每个组件 `core/<组件>/__init__.py` 提供 `create_*_engine(config)` 按 backend 字符串分发；新增后端需实现同目录 `base.py` 接口并在工厂注册。`backend="auto"` 与显式真实后端一样：真实引擎不可用则**启动失败**（拒绝静默 Mock）；仅显式 `backend="mock"` 用于测试。
 - 首遍流式只有一个真实引擎：ONNX Runtime 多路合批（`core/streaming_asr/onnx_batched_streaming.py`，官方导出图 + int8 量化，模型目录 `models/onnx/` 由 `scripts/export_onnx.py` 产出）；backend 值 `auto|onnx|mock`。VAD/说话人支持 `funasr|mock|auto`，final 支持 `vllm_http|openai_api|mock`。
 - 配置优先级：`config/config.default.yaml`（或 `ASR_CONFIG_PATH` 指定文件）< 环境变量（`ASR_DEVICE`、`VLLM_URL`、`FINAL_ASR_BACKEND` 等）< `main.py` CLI 参数。
 - WebSocket 协议：Binary 帧 = PCM16/16kHz/单声道音频；Text 帧 = JSON 信令（start/commit/stop），网关层分离处理两种帧。完整协议（partial/provisional/final 消息、resume、热词）以 `docs/client-integration-guide.md` 为准，改协议须同步更新该文档。

@@ -44,7 +44,7 @@ pool:
   worker_threads: 0              # CPU 推理线程池(VAD/流式ASR/说话人共用); 0=自动: min(16, CPU 逻辑核数), 多实例绑核部署下每实例不宜固定 16 (env ASR_WORKER_THREADS)
 
 streaming_asr:
-  backend: "auto"                # auto | onnx | mock; ONNX 合批引擎是唯一真实引擎, auto 缺依赖/模型时静默回退 Mock, 显式 onnx 则报错
+  backend: "auto"                # auto | onnx | mock; ONNX 合批是唯一真实引擎。auto/onnx 缺依赖或模型时启动失败(拒绝静默 Mock); mock 仅用于测试
   device: "auto"                 # auto | cuda:0 | cpu; 作用于首遍 ONNX Execution Provider (CPU / CUDA:N), auto 自动探测 (env ASR_DEVICE / CLI --device)
   chunk_size: [5, 10, 5]         # 流式重叠窗 [左, 当前, 右] (LFR chunk 数), 须与导出 ONNX 图的模型一致;
                                  # 小参数 Paraformer 导出物必须带左上下文 [5,10,5] (env STREAMING_CHUNK_SIZE, 如 "5,10,5")
@@ -56,7 +56,7 @@ streaming_asr:
   onnx_intra_op_threads: 0       # ORT 每会话 intra-op 线程数, 0=默认全部核 (env STREAMING_ONNX_THREADS)
 
 vad:
-  backend: "auto"                # auto | funasr | mock
+  backend: "auto"                # auto | funasr | mock; auto/funasr 缺模型则启动失败(拒绝静默 Mock); mock 仅测试
   model_name_or_path: "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch" # (env VAD_MODEL / CLI --vad_model)
   model_revision: "v2.0.4"
   device: "cpu"                  # FSMN-VAD 在 CPU 上足够轻量
@@ -65,7 +65,7 @@ vad:
   speech_noise_thresh: 0.6       # 语音/噪声判决阈值
 
 final_asr:
-  engine_type: "vllm_http"       # vllm_http | openai_api | mock (env FINAL_ASR_BACKEND / CLI --final_backend)
+  engine_type: "vllm_http"       # vllm_http | openai_api | auto | mock; auto=vllm_http 永不静默 Mock; mock 仅测试 (env FINAL_ASR_BACKEND / CLI --final_backend)
   vllm_url: "http://127.0.0.1:8899/v1/audio/transcriptions" # 二遍 vLLM 地址 (默认 transcriptions; 亦支持 /v1/chat/completions) (env VLLM_URL / CLI --vllm_url)
   model_name: "qwen3-asr"        # 须与 vLLM 侧 --served-model-name 一致 (env FINAL_ASR_MODEL / CLI --final_model)
   api_key: "EMPTY"               # Bearer 鉴权头, vLLM 一般填 EMPTY
@@ -80,7 +80,7 @@ final_asr:
   context_history_chars: 200     # 二遍 prompt 历史上下文尾部字数 (S3: 已 finalize 的二遍结果, 不传本句首遍); 0=不传 context (env FINAL_CONTEXT_HISTORY_CHARS)
 
 speaker:
-  backend: "auto"                # auto | funasr | mock; 会话级开关由 start 信令 enable_spk 控制
+  backend: "auto"                # auto | funasr | mock; auto/funasr 缺模型则启动失败(拒绝静默 Mock); mock 仅测试; 会话级开关由 start.enable_spk 控制
   model_name_or_path: "iic/speech_campplus_sv_zh-cn_16k-common" # (env SPEAKER_MODEL / CLI --speaker_model)
   model_revision: "master"
   device: "auto"                 # auto | cuda:0 | cpu (env ASR_DEVICE / CLI --device)
@@ -89,7 +89,7 @@ speaker:
 
 punc:
   enable_realtime: false         # 实时标点(首遍部分结果加标点); 关闭时不加载模型
-  backend: "auto"                # auto | funasr | mock
+  backend: "auto"                # auto | funasr | mock; auto/funasr 缺模型则启动失败(拒绝静默 Mock); mock 仅测试
   model_name_or_path: "iic/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727" # (env PUNC_MODEL / CLI --punc_model)
   model_revision: "v2.0.4"
   device: "cpu"

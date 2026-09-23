@@ -125,7 +125,7 @@ class AdmissionConfig:
 
 @dataclass
 class StreamingASRConfig:
-    backend: str = "auto"  # auto | onnx | mock; onnx 为唯一真实引擎, auto 缺依赖时回退 Mock
+    backend: str = "auto"  # auto | onnx | mock; auto/onnx 缺依赖则启动失败(拒绝静默 Mock); mock 仅测试
     device: str = "auto"  # auto | cuda:0 | cpu
     # 流式重叠窗 [左, 当前, 右] (LFR chunk 数), 须与导出 ONNX 图的模型一致;
     # 小参数 Paraformer 导出物必须带左上下文 [5,10,5] (env STREAMING_CHUNK_SIZE)
@@ -147,7 +147,7 @@ class StreamingASRConfig:
 
 @dataclass
 class VADConfig:
-    backend: str = "auto"  # auto | funasr | mock
+    backend: str = "auto"  # auto | funasr | mock; auto/funasr 失败即报错(拒绝静默 Mock)
     model_name_or_path: str = "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
     model_revision: str = "v2.0.4"
     device: str = "cpu"  # FSMN-VAD is extremely lightweight on CPU
@@ -161,7 +161,7 @@ class VADConfig:
 
 @dataclass
 class FinalASRConfig:
-    engine_type: str = "vllm_http"  # vllm_http | openai_api | mock
+    engine_type: str = "vllm_http"  # vllm_http | openai_api | auto | mock; auto=vllm_http; mock 仅测试
     vllm_url: str = "http://127.0.0.1:8899/v1/audio/transcriptions"
     model_name: str = "qwen3-asr"
     api_key: str = "EMPTY"
@@ -191,7 +191,7 @@ class FinalASRConfig:
 
 @dataclass
 class SpeakerConfig:
-    backend: str = "auto"  # auto | funasr | mock
+    backend: str = "auto"  # auto | funasr | mock; auto/funasr 失败即报错(拒绝静默 Mock)
     model_name_or_path: str = "iic/speech_campplus_sv_zh-cn_16k-common"
     model_revision: str = "master"
     device: str = "auto"  # auto | cuda:0 | cpu
@@ -202,7 +202,7 @@ class SpeakerConfig:
 @dataclass
 class PuncConfig:
     enable_realtime: bool = False
-    backend: str = "auto"  # auto | funasr | mock
+    backend: str = "auto"  # auto | funasr | mock; auto/funasr 失败即报错(拒绝静默 Mock)
     model_name_or_path: str = "iic/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727"
     model_revision: str = "v2.0.4"
     device: str = "cpu"

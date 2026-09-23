@@ -7,22 +7,33 @@ from core.speaker.recluster import global_recluster_speakers
 
 
 def create_speaker_engine(config: SpeakerConfig) -> BaseSpeakerEngine:
+    """
+    backend:
+      - "mock": tests / explicit stub only
+      - "funasr": real speaker embedding; hard error if unavailable
+      - "auto": same as funasr — real engine or fail loudly (no silent Mock)
+    """
     backend = config.backend.lower()
     if backend == "mock":
+        logger.info("[SpeakerFactory] selected backend=mock (explicit)")
         return MockSpeakerEngine(config)
 
     if backend in ("auto", "funasr"):
         try:
             from core.speaker.eres2net_extractor import ERes2NetSpeakerEngine
 
-            return ERes2NetSpeakerEngine(config)
+            engine = ERes2NetSpeakerEngine(config)
+            logger.info(f"[SpeakerFactory] selected backend={backend} -> funasr")
+            return engine
         except Exception as e:
-            if backend == "auto":
-                logger.warning(
-                    f"[SpeakerFactory] FunASR Speaker model not available ({e}), falling back to MockSpeakerEngine."
-                )
-                return MockSpeakerEngine(config)
-            raise e
+            logger.error(
+                f"[SpeakerFactory] FunASR Speaker unavailable for backend={backend!r}: {e}. "
+                "Set speaker.backend=mock only for tests; auto/funasr require models."
+            )
+            raise RuntimeError(
+                f"Speaker backend {backend!r} requires FunASR speaker model; "
+                f"refusing silent Mock fallback. Underlying error: {e}"
+            ) from e
 
     raise ValueError(f"Unsupported Speaker backend: {config.backend}")
 

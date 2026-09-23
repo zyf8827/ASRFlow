@@ -14,28 +14,38 @@ def create_streaming_asr_engine(config: StreamingASRConfig) -> BaseStreamingASRE
     dynamic batch axis (官方导出图 + int8 量化).
 
     backend:
-      - "mock": mock engine (tests)
-      - "onnx": the real engine, hard error when it cannot be initialized
-      - "auto": the real engine, silently falls back to mock when the ONNX
-        runtime / model directory is unavailable (dependency-less dev env)
+      - "mock": mock engine (tests / explicit local stub only)
+      - "onnx": the real engine; hard error when it cannot be initialized
+      - "auto": same as onnx — resolve to the real engine or fail loudly
+        (no silent Mock fallback; product readiness must not look healthy
+        on fake ASR)
     """
     backend = config.backend.lower()
     if backend == "mock":
+        logger.info("[StreamingASRFactory] selected backend=mock (explicit)")
         return MockStreamingASREngine(config)
 
     if backend in ("auto", "onnx"):
         try:
             from core.streaming_asr.onnx_batched_streaming import OnnxBatchedStreamingEngine
 
-            return OnnxBatchedStreamingEngine(config)
+            engine = OnnxBatchedStreamingEngine(config)
+            logger.info(
+                f"[StreamingASRFactory] selected backend={backend} -> onnx "
+                f"(model_dir={config.onnx_model_dir!r})"
+            )
+            return engine
         except Exception as e:
-            if backend == "auto":
-                logger.warning(
-                    f"[StreamingASRFactory] ONNX engine not available ({e}), "
-                    "falling back to MockStreamingASREngine."
-                )
-                return MockStreamingASREngine(config)
-            raise
+            # auto and onnx both fail loudly — never silently mock in product
+            logger.error(
+                f"[StreamingASRFactory] ONNX engine unavailable for backend={backend!r}: {e}. "
+                "Set streaming_asr.backend=mock only for tests; auto/onnx require a real model."
+            )
+            raise RuntimeError(
+                f"Streaming ASR backend {backend!r} requires ONNX Runtime and models "
+                f"under {config.onnx_model_dir!r}; refusing silent Mock fallback. "
+                f"Underlying error: {e}"
+            ) from e
 
     raise ValueError(f"Unsupported Streaming ASR backend: {config.backend}")
 
